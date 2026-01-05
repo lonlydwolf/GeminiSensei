@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Bun & Node
+node_modules/
+.bun-build/
+dist/
+dist-ssr/
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Python (Global)
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec
+.venv/
+venv/
+ENV/
+
+# Build Artifacts (Global)
+build/
+target/
+
+# Database
+*.db
+*.sqlite
+.lancedb/
+
+# Sidecar Specific
+sidecar/sidecar.spec
+sidecar/build/
+sidecar/dist/
+sidecar/__pycache__/
