@@ -2,6 +2,10 @@
   "words": [
     "Sensei",
     "generativeai",
-    "genai"
+    "genai",
+    "dbsessionmanager",
+    "sessionmaker",
+    "autoflush",
+    "poolclass"
   ]
 }
