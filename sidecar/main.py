@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import socket
 import sys
@@ -7,7 +8,8 @@ from typing import cast
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
-from database.session import init_db
+from database.migrations import run_migrations
+from database.session import dbsessionmanager
 
 # Configure logging
 logging.basicConfig(
@@ -20,10 +22,11 @@ logger = logging.getLogger("sidecar")
 async def lifespan(_app: FastAPI):
     # Initialize database on startup
     logger.info("Initializing database...")
-    await init_db()
+    await asyncio.to_thread(run_migrations)
     yield
     # Clean up on shutdown
     logger.info("Shutting down...")
+    await dbsessionmanager.close()
 
 
 app = FastAPI(title="GeminiSensei Sidecar", lifespan=lifespan)
