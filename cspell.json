@@ -6,6 +6,7 @@
     "dbsessionmanager",
     "sessionmaker",
     "autoflush",
-    "poolclass"
+    "poolclass",
+    "selectinload"
   ]
 }
