@@ -60,14 +60,13 @@ class RoadmapCreate(RoadmapBase):
     pass
 
 
-class RoadmapReadDetailed(RoadmapRead):
-    phases: list[PhaseRead] = Field(default_factory=list)
+class LessonReadDetailed(LessonRead):
+    phase: PhaseRead | None = None
 
 
 class PhaseReadDetailed(PhaseRead):
-    roadmap: RoadmapRead | None = None
     lessons: list[LessonRead] = Field(default_factory=list)
 
 
-class LessonReadDetailed(LessonRead):
-    phase: PhaseRead | None = None
+class RoadmapReadDetailed(RoadmapRead):
+    phases: list[PhaseReadDetailed] = Field(default_factory=list)

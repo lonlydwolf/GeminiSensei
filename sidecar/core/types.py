@@ -59,3 +59,18 @@ class RoadmapStructure(BaseModel):
 class RoadmapCreateResult(BaseModel):
     roadmap_id: str = Field(description="Unique identifier for the created roadmap")
     roadmap: RoadmapStructure = Field(description="The structure of the created roadmap")
+
+
+class RoadmapCreateRequest(BaseModel):
+    goal: str = Field(..., min_length=3, max_length=500, description="The learning goal")
+    background: str = Field(
+        default="Beginner", min_length=2, description="Student's background knowledge"
+    )
+    preferences: str = Field(
+        default="Hands-on, practical projects", description="Learning style preferences"
+    )
+
+
+class RoadmapResponse(BaseModel):
+    roadmap_id: str
+    message: str

@@ -10,6 +10,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from database.migrations import run_migrations
 from database.session import dbsessionmanager
+from routers import roadmap
 
 # Configure logging
 logging.basicConfig(
@@ -30,6 +31,8 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="GeminiSensei Sidecar", lifespan=lifespan)
+
+app.include_router(roadmap.router)
 
 
 @app.get("/")
