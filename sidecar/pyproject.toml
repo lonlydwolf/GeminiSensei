@@ -12,6 +12,7 @@ dependencies = [
     "greenlet>=3.3.0",
     "lancedb>=0.26.1",
     "langgraph>=1.0.5",
+    "langgraph-checkpoint-sqlite>=3.0.3",
     "pydantic-ai>=1.39.0",
     "pyinstaller>=6.17.0",
     "sqlalchemy>=2.0.45",
@@ -25,6 +26,7 @@ venv = ".venv"
 executionEnvironments = [
   { root = "." }
 ]
+reportMissingTypeStubs = false
 
 [dependency-groups]
 dev = [

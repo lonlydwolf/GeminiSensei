@@ -7,6 +7,10 @@
     "sessionmaker",
     "autoflush",
     "poolclass",
-    "selectinload"
+    "selectinload",
+    "checkpointer",
+    "ainvoke",
+    "astream",
+    "adispatch"
   ]
 }

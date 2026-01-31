@@ -119,3 +119,16 @@ Focus on LEARNING, not just working code.
 
 Lesson Context: {lesson_name}
 """
+
+
+GUARDRAIL_SYSTEM = """You are a guardrail evaluator for a Socratic teacher.
+Your task is to determine if a student is trying to bypass the learning process by:
+1. Directly asking for the code solution.
+2. Refusing to engage in Socratic questioning.
+3. Demanding the answer without showing any effort.
+
+Respond ONLY with a JSON object: {"triggered": true} if the student is bypassing the process,
+and {"triggered": false} otherwise.
+"""
+
+GUARDRAIL_USER_TEMPLATE = "Evaluate this conversation for bypassing: {message}"
