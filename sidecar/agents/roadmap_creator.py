@@ -44,8 +44,8 @@ class RoadmapCreatorAgent:
             RoadmapError: If inputs are invalid or generation fails
         """
         # Input Validation
-        if not goal or len(goal.strip()) < 3:
-            raise RoadmapError("Goal must be at least 3 characters long")
+        if not goal or len(goal.strip()) < 10:
+            raise RoadmapError("Goal must be at least 10 characters long")
         if not background or len(background.strip()) < 3:
             raise RoadmapError("Background must be at least 3 characters long")
 

@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
     # Logging
     LOG_LEVEL: str = "INFO"
+    ALEMBIC_LOG_LEVEL: str = "WARNING"
+    SQLALCHEMY_ENGINE_LOG_LEVEL: str = "WARNING"
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
