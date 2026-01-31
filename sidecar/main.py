@@ -8,10 +8,11 @@ from typing import cast
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
+from agents.teacher.manager import agent_manager
 from core.config import settings
 from database.migrations import run_migrations
 from database.session import dbsessionmanager
-from routers import roadmap
+from routers import chat, roadmap
 
 # Configure logging
 logging.basicConfig(
@@ -25,10 +26,16 @@ async def lifespan(_app: FastAPI):
     # Initialize database on startup
     logger.info("Initializing database...")
     await asyncio.to_thread(run_migrations)
-    logger.info("Database initialized. Sidecar is ready.")
+
+    # Initialize agents
+    logger.info("Initializing Agent Manager...")
+    await agent_manager.initialize_all()
+
+    logger.info("Database and agents initialized. Sidecar is ready.")
     yield
     # Clean up on shutdown
     logger.info("Shutting down...")
+    await agent_manager.close_all()
     await dbsessionmanager.close()
     logger.info("Shutdown complete.")
 
@@ -36,6 +43,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="GeminiSensei Sidecar", lifespan=lifespan)
 
 app.include_router(roadmap.router)
+app.include_router(chat.router)
 
 
 @app.get("/")
