@@ -62,7 +62,12 @@ class RoadmapCreateResult(BaseModel):
 
 
 class RoadmapCreateRequest(BaseModel):
-    goal: str = Field(..., min_length=3, max_length=500, description="The learning goal")
+    goal: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="The learning goal (e.g., 'Learn Python for Data Analysis')",
+    )
     background: str = Field(
         default="Beginner", min_length=2, description="Student's background knowledge"
     )

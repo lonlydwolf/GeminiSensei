@@ -1,9 +1,7 @@
 from datetime import datetime
 from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, Field
-
-JSONValue = str | int | float | bool | None | dict[str, "JSONValue"] | list["JSONValue"]
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 
 class AppBaseModel(BaseModel):
@@ -17,7 +15,7 @@ class LessonBase(AppBaseModel):
     order_num: int
     status: str = "not_started"
     time_spent: int = 0
-    metadata_json: dict[str, JSONValue] = Field(default={})
+    metadata_json: dict[str, JsonValue] = Field(default_factory=dict)
     phase_id: str
 
 
