@@ -10,7 +10,9 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing_extensions import override
 
+from agents.base import BaseAgent
 from core.config import settings
 
 from .nodes import context_enrichment_node, guardrail_node, socratic_node
@@ -23,7 +25,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class TeacherAgent:
+class TeacherAgent(BaseAgent):
     """Agent that teaches through Socratic questioning."""
 
     _checkpointer_cm: AsyncContextManager[AsyncSqliteSaver] | None = None
@@ -70,6 +72,7 @@ class TeacherAgent:
 
         return workflow
 
+    @override
     async def initialize(self) -> None:
         """Initialize checkpointer and compile workflow."""
         if self._workflow is not None:
@@ -102,13 +105,14 @@ class TeacherAgent:
             )
         return self._workflow
 
-    async def chat(self, lesson_id: str, message: str, _db: AsyncSession) -> str:
+    @override
+    async def chat(self, thread_id: str, message: str, db: AsyncSession) -> str:
         """Chat with teacher agent.
 
         Args:
-            lesson_id: Current lesson ID (also thread_id for memory)
+            thread_id: Current lesson ID (also thread_id for memory)
             message: User's message
-            _db: Database session
+            db: Database session
 
         Returns:
             Teacher's response
@@ -117,7 +121,7 @@ class TeacherAgent:
             # Prepare initial state with lesson_id
             state: AgentState = {
                 "messages": [HumanMessage(content=message)],
-                "lesson_id": lesson_id,
+                "lesson_id": thread_id,
                 # Initialize other fields with safe defaults
                 "lesson_name": "",
                 "lesson_context": "",
@@ -133,9 +137,9 @@ class TeacherAgent:
                     object,
                     {
                         "configurable": {
-                            "thread_id": lesson_id,
+                            "thread_id": thread_id,
                             "gemini_service": self.gemini_service,
-                            "db_session": _db,
+                            "db_session": db,
                             "model_name": self.model_name,
                         }
                     },
@@ -156,15 +160,16 @@ class TeacherAgent:
             logger.error(f"Teacher agent error: {e}")
             raise
 
+    @override
     async def chat_stream(
-        self, lesson_id: str, message: str, _db: AsyncSession
+        self, thread_id: str, message: str, db: AsyncSession
     ) -> AsyncIterator[str]:
         """Chat with teacher agent (streaming).
 
         Args:
-            lesson_id: Current Lesson ID
+            thread_id: Current Lesson ID
             message: User's message
-            _db: Database session
+            db: Database session
 
         Yields:
             Response chunks
@@ -174,7 +179,7 @@ class TeacherAgent:
             # Prepare initial state
             state: AgentState = {
                 "messages": [HumanMessage(content=message)],
-                "lesson_id": lesson_id,
+                "lesson_id": thread_id,
                 "lesson_name": "",
                 "lesson_context": "",
                 "objectives": [],
@@ -189,9 +194,9 @@ class TeacherAgent:
                     object,
                     {
                         "configurable": {
-                            "thread_id": lesson_id,
+                            "thread_id": thread_id,
                             "gemini_service": self.gemini_service,
-                            "db_session": _db,
+                            "db_session": db,
                             "model_name": self.model_name,
                         }
                     },
@@ -214,6 +219,7 @@ class TeacherAgent:
             logger.error(f"Teacher agent streaming error: {e}")
             raise
 
+    @override
     async def close(self) -> None:
         """Cleanup checkpointer connection."""
         if self._checkpointer_cm is not None:
