@@ -15,6 +15,12 @@ class LessonStatus(str, Enum):
     COMPLETED = "completed"
 
 
+class CodeReviewStatus(str, Enum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class RoadmapError(Exception):
     """Base exception for roadmap operations."""
 

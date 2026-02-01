@@ -6,7 +6,7 @@ from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from core.types import LessonStatus, RoadmapStatus
+from core.types import CodeReviewStatus, LessonStatus, RoadmapStatus
 
 
 class Base(DeclarativeBase):
@@ -65,6 +65,42 @@ class Lesson(Base):
         SQLEnum(LessonStatus), default=LessonStatus.NOT_STARTED, index=True
     )
     time_spent: Mapped[int] = mapped_column(Integer, default=0)
-    metadata_json: Mapped[dict[str, JSONValue]] = mapped_column(MutableDict.as_mutable(JSON))
+    metadata_json: Mapped[dict[str, JSONValue]] = mapped_column(
+        MutableDict.as_mutable(JSON), default=dict
+    )
 
     phase: Mapped["Phase"] = relationship("Phase", back_populates="lessons")
+
+
+class CodeReview(Base):
+    __tablename__: str = "code_reviews"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    lesson_id: Mapped[str] = mapped_column(ForeignKey("lessons.id"), index=True)
+    code_content: Mapped[str] = mapped_column(Text, nullable=False)
+    language: Mapped[str] = mapped_column(String, nullable=False)
+    feedback: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[CodeReviewStatus] = mapped_column(
+        SQLEnum(CodeReviewStatus), default=CodeReviewStatus.PENDING, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    lesson: Mapped["Lesson"] = relationship("Lesson")
+    findings: Mapped[list["CodeReviewFinding"]] = relationship(
+        "CodeReviewFinding", back_populates="review", cascade="all, delete-orphan"
+    )
+
+
+class CodeReviewFinding(Base):
+    __tablename__: str = "code_review_findings"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    review_id: Mapped[str] = mapped_column(ForeignKey("code_reviews.id"), index=True)
+    line_number: Mapped[int | None] = mapped_column(Integer)
+    category: Mapped[str] = mapped_column(String)  # Security, Performance, Style, etc.
+    observation: Mapped[str] = mapped_column(Text)
+    socratic_question: Mapped[str] = mapped_column(Text)
+
+    review: Mapped["CodeReview"] = relationship("CodeReview", back_populates="findings")
