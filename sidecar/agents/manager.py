@@ -1,6 +1,8 @@
 import logging
 from typing import TYPE_CHECKING
 
+from agents.base import BaseAgent
+from agents.code_reviewer.agent import CodeReviewerAgent
 from agents.teacher.agent import TeacherAgent
 from database.session import dbsessionmanager
 from services.gemini_service import gemini_service
@@ -12,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class AgentManager:
-    """Manages the lifecycle and retrieval of TeacherAgent instances."""
+    """Manages the lifecycle and retrieval of specialized agents."""
 
     def __init__(self) -> None:
-        self._agents: dict[str, TeacherAgent] = {}
+        self._agents: dict[str, BaseAgent] = {}
         self._is_initialized: bool = False
 
     async def initialize_all(self) -> None:
@@ -23,9 +25,15 @@ class AgentManager:
         if self._is_initialized:
             return
 
-        # Initialize the default agent if not present
-        if "default" not in self._agents:
-            self._agents["default"] = TeacherAgent(
+        # Initialize the teacher agent if not present
+        if "teacher" not in self._agents:
+            self._agents["teacher"] = TeacherAgent(
+                gemini_service=gemini_service,
+                db_manager=dbsessionmanager,
+            )
+
+        if "reviewer" not in self._agents:
+            self._agents["reviewer"] = CodeReviewerAgent(
                 gemini_service=gemini_service,
                 db_manager=dbsessionmanager,
             )
@@ -40,14 +48,14 @@ class AgentManager:
 
         self._is_initialized = True
 
-    def get_agent(self, name: str = "default") -> TeacherAgent:
+    def get_agent(self, name: str = "teacher") -> BaseAgent:
         """Get a specific agent instance.
 
         Args:
-            name: Name of the agent configuration (default: "default")
+            name: Name of the agent configuration (default: "teacher")
 
         Returns:
-            TeacherAgent instance
+            BaseAgent instance
 
         Raises:
             RuntimeError: If the agent has not been initialized.

@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents.teacher.manager import agent_manager
+from agents.manager import agent_manager
 from database.session import get_db
 
 logger = logging.getLogger(__name__)
