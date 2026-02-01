@@ -12,7 +12,7 @@ from agents.manager import agent_manager
 from core.config import settings
 from database.migrations import run_migrations
 from database.session import dbsessionmanager
-from routers import chat, roadmap
+from routers import chat, review, roadmap
 
 # Configure logging
 logging.basicConfig(
@@ -44,6 +44,7 @@ app = FastAPI(title="GeminiSensei Sidecar", lifespan=lifespan)
 
 app.include_router(roadmap.router)
 app.include_router(chat.router)
+app.include_router(review.router)
 
 
 @app.get("/")
