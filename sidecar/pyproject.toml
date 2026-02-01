@@ -24,6 +24,7 @@ dependencies = [
 venvPath = "."
 venv = ".venv"
 executionEnvironments = [
+  { root = "tests", extraPaths = ["."], reportAny = "none", reportExplicitAny = "none", reportUnknownMemberType = "none", reportUnknownArgumentType = "none" },
   { root = "." }
 ]
 reportMissingTypeStubs = false
@@ -36,5 +37,11 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "mypy>=1.8.0",
+    "httpx>=0.27.0",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--cov=. --cov-report=term-missing --cov-report=html"
