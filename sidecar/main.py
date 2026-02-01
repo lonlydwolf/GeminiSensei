@@ -8,7 +8,7 @@ from typing import cast
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
-from agents.teacher.manager import agent_manager
+from agents.manager import agent_manager
 from core.config import settings
 from database.migrations import run_migrations
 from database.session import dbsessionmanager
