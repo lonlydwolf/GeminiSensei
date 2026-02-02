@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import ClassVar
 
+from google.genai import types
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,6 +13,26 @@ class Settings(BaseSettings):
 
     # API Settings
     GEMINI_API_KEY: str = Field(default="")
+    
+    # Safety Settings
+    SAFETY_SETTINGS: list[types.SafetySetting] = [
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        ),
+    ]
 
     # Database Settings
     # Default to user home directory if not provided

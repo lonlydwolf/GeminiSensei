@@ -23,6 +23,17 @@ logger = logging.getLogger("sidecar")
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Validate configuration
+    if not settings.GEMINI_API_KEY:
+        error_msg = (
+            "GEMINI_API_KEY is missing. AI features will fail. "
+            "Please set it in .env or environment variables."
+        )
+        logger.critical(error_msg)
+        # We raise a RuntimeError to stop startup if the API key is missing
+        # This is a strict requirement for the sidecar
+        raise RuntimeError(error_msg)
+
     # Initialize database on startup
     logger.info("Initializing database...")
     await asyncio.to_thread(run_migrations)
