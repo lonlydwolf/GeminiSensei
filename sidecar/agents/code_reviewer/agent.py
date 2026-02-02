@@ -123,6 +123,7 @@ class CodeReviewerAgent(BaseAgent):
         if self._workflow is None:
             raise RuntimeError("Agent not initialized")
 
+        has_streamed = False
         # In LangGraph v2, we stream events
         async for event in self._workflow.astream_events(state, config=config, version="v2"):
             if event["event"] == "on_custom_event" and event["name"] == "review_token":
@@ -130,7 +131,25 @@ class CodeReviewerAgent(BaseAgent):
                 if data:
                     token = data.get("token")
                     if token and isinstance(token, str):
+                        has_streamed = True
                         yield str(token)
+
+            # Fallback for static messages (e.g. guardrails or errors)
+            # Filter specifically for the 'reviewer' node to avoid duplicate yields from graph root events
+            elif (
+                event["event"] == "on_chain_end"
+                and event.get("name") == "reviewer"
+                and not has_streamed
+            ):
+                # The final output is in event["data"]["output"]
+                output = event.get("data", {}).get("output", {})
+                if isinstance(output, dict) and "messages" in output:
+                    messages = output["messages"]
+                    if messages:
+                        last_msg = messages[-1]
+                        content = getattr(last_msg, "content", "")
+                        if content:
+                            yield str(content)
 
     @override
     async def close(self) -> None:
