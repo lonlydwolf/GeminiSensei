@@ -3,12 +3,16 @@ from pydantic import ValidationError
 from core.types import (
     CodeReviewStatus,
     LessonStatus,
+)
+from schemas.domain import (
+    LessonCreate,
     LessonStructure,
+    PhaseCreate,
     PhaseStructure,
+    RoadmapCreate,
     RoadmapCreateRequest,
     RoadmapStructure,
 )
-from schemas.models import LessonCreate, PhaseCreate, RoadmapCreate
 
 
 def test_roadmap_create_request_valid():
