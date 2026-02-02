@@ -11,13 +11,12 @@ from agents.prompts import ROADMAP_CREATOR_SYSTEM, ROADMAP_CREATOR_USER_TEMPLATE
 from core.types import (
     LessonStatus,
     RoadmapAIError,
-    RoadmapCreateResult,
     RoadmapError,
     RoadmapStatus,
-    RoadmapStructure,
     RoadmapValidationError,
 )
 from database.models import Lesson, Phase, Roadmap
+from schemas.domain import RoadmapCreateResult, RoadmapStructure
 from services.gemini_service import gemini_service
 
 logger = logging.getLogger(__name__)

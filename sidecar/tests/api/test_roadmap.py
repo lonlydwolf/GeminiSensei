@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
-from core.types import RoadmapCreateResult, RoadmapStructure
+from schemas.domain import RoadmapCreateResult, RoadmapStructure
 
 
 @pytest.mark.asyncio

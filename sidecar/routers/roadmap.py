@@ -9,10 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from agents.roadmap_creator import roadmap_creator
-from core.types import RoadmapCreateRequest, RoadmapCreateResult, RoadmapResponse
 from database.models import Phase, Roadmap
 from database.session import get_db
-from schemas.models import RoadmapReadDetailed
+from schemas.domain import (
+    RoadmapCreateRequest,
+    RoadmapCreateResult,
+    RoadmapReadDetailed,
+    RoadmapResponse,
+)
 
 db_dep = Annotated[AsyncSession, Depends(get_db)]
 
