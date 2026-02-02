@@ -21,6 +21,7 @@ from .state import AgentState
 if TYPE_CHECKING:
     from database.session import DBSessionManager
     from services.gemini_service import GeminiService
+    from services.lesson_service import LessonContextService
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class TeacherAgent(BaseAgent):
         self,
         gemini_service: "GeminiService",
         db_manager: "DBSessionManager",
+        lesson_service: "LessonContextService",
         model_name: str = "gemini-2.0-flash",
     ) -> None:
         """Initialize teacher agent.
@@ -43,10 +45,12 @@ class TeacherAgent(BaseAgent):
         Args:
             gemini_service: Injected Gemini service.
             db_manager: Injected database session manager.
+            lesson_service: Injected lesson context service.
             model_name: Model name to use.
         """
         self.gemini_service: GeminiService = gemini_service
         self.db_manager: DBSessionManager = db_manager
+        self.lesson_service: LessonContextService = lesson_service
         self.model_name: str = model_name
 
     def _create_builder(self) -> StateGraph[AgentState, Any, Any, Any]:  # pyright: ignore[reportExplicitAny]
@@ -139,6 +143,7 @@ class TeacherAgent(BaseAgent):
                         "configurable": {
                             "thread_id": thread_id,
                             "gemini_service": self.gemini_service,
+                            "lesson_service": self.lesson_service,
                             "db_session": db,
                             "model_name": self.model_name,
                         }
@@ -196,6 +201,7 @@ class TeacherAgent(BaseAgent):
                         "configurable": {
                             "thread_id": thread_id,
                             "gemini_service": self.gemini_service,
+                            "lesson_service": self.lesson_service,
                             "db_session": db,
                             "model_name": self.model_name,
                         }

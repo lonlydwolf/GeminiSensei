@@ -16,6 +16,7 @@ from agents.base import BaseAgent
 from core.config import settings
 from database.session import DBSessionManager
 from services.gemini_service import GeminiService
+from services.lesson_service import LessonContextService
 
 from .nodes import (
     code_analysis_node,
@@ -39,10 +40,12 @@ class CodeReviewerAgent(BaseAgent):
         self,
         gemini_service: GeminiService,
         db_manager: DBSessionManager,
+        lesson_service: LessonContextService,
         model_name: str = "gemini-2.0-flash",
     ) -> None:
         self.gemini_service: GeminiService = gemini_service
         self.db_manager: DBSessionManager = db_manager
+        self.lesson_service: LessonContextService = lesson_service
         self.model_name: str = model_name
 
     def _create_builder(self) -> StateGraph[CodeReviewerState, Any, Any, Any]:  # pyright: ignore[reportExplicitAny]
@@ -111,6 +114,7 @@ class CodeReviewerAgent(BaseAgent):
             "configurable": {
                 "thread_id": review_id,
                 "gemini_service": self.gemini_service,
+                "lesson_service": self.lesson_service,
                 "db_session": db,
                 "model_name": self.model_name,
             }

@@ -1,10 +1,9 @@
 import logging
 
 from langchain_core.runnables import RunnableConfig
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Lesson
+from services.lesson_service import LessonContextService
 
 from ..state import CodeReviewerState
 
@@ -23,17 +22,14 @@ async def context_enrichment_node(
         raise RuntimeError("db_session dependency is required")
 
     lesson_id = state["lesson_id"]
+    service: LessonContextService = configurable.get("lesson_service") or LessonContextService()
 
     try:
-        stmt = select(Lesson).where(Lesson.id == lesson_id)
-        result = await db.execute(stmt)
-        lesson = result.scalar_one_or_none()
-
-        if lesson:
-            return {
-                "lesson_name": str(lesson.name),
-                "objectives": lesson.objectives,
-            }
+        context = await service.get_context(lesson_id, db)
+        return {
+            "lesson_name": context.name,
+            "objectives": context.objectives,
+        }
     except Exception as e:
         logger.error(f"Enrichment error: {e}")
 
