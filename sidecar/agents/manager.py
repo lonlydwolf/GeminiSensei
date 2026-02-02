@@ -6,6 +6,7 @@ from agents.code_reviewer.agent import CodeReviewerAgent
 from agents.teacher.agent import TeacherAgent
 from database.session import dbsessionmanager
 from services.gemini_service import gemini_service
+from services.lesson_service import LessonContextService
 
 if TYPE_CHECKING:
     pass
@@ -25,17 +26,22 @@ class AgentManager:
         if self._is_initialized:
             return
 
+        # Initialize shared services
+        lesson_service = LessonContextService()
+
         # Initialize the teacher agent if not present
         if "teacher" not in self._agents:
             self._agents["teacher"] = TeacherAgent(
                 gemini_service=gemini_service,
                 db_manager=dbsessionmanager,
+                lesson_service=lesson_service,
             )
 
         if "reviewer" not in self._agents:
             self._agents["reviewer"] = CodeReviewerAgent(
                 gemini_service=gemini_service,
                 db_manager=dbsessionmanager,
+                lesson_service=lesson_service,
             )
 
         # Initialize all agents
