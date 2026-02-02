@@ -1,18 +1,18 @@
 import json
-from unittest.mock import AsyncMock, patch, MagicMock
-from typing import cast, Any
+from typing import Any, cast
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.code_reviewer.agent import CodeReviewerAgent
-from database.models import CodeReview, Lesson, Phase, Roadmap
 from agents.code_reviewer.nodes.guardrails import guardrail_node
 from agents.code_reviewer.state import CodeReviewerState
+from database.models import CodeReview, Lesson, Phase, Roadmap
 
 
 @pytest.mark.asyncio
@@ -66,16 +66,22 @@ async def test_guardrail_checks_code_content():
     # Setup state with malicious code but innocent message
     state = cast(
         CodeReviewerState,
-        {
-            "messages": [HumanMessage(content="Please review my code")],
-            "code_content": "MALICIOUS_CODE_SIGNATURE",
-            "language": "python",
-        },
+        cast(
+            object,
+            {
+                "messages": [HumanMessage(content="Please review my code")],
+                "code_content": "MALICIOUS_CODE_SIGNATURE",
+                "language": "python",
+            },
+        ),
     )
 
-    config = cast(RunnableConfig, {"configurable": {"gemini_service": mock_gemini}})
+    config = cast(
+        RunnableConfig,
+        cast(object, {"configurable": {"gemini_service": mock_gemini}}),
+    )
 
-    await guardrail_node(state, config)
+    _ = await guardrail_node(state, config)
 
     # Check what was passed to the LLM
     call_args = mock_gemini.generate_content.call_args
