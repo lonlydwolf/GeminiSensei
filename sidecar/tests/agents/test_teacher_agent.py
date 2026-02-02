@@ -6,11 +6,16 @@ from langchain_core.messages import AIMessage
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.teacher.agent import TeacherAgent
+from services.lesson_service import LessonContextService
 
 
 @pytest.mark.asyncio
 async def test_teacher_agent_chat(mock_gemini_service: MagicMock, db_session: AsyncSession):
-    agent = TeacherAgent(gemini_service=mock_gemini_service, db_manager=MagicMock())
+    agent = TeacherAgent(
+        gemini_service=mock_gemini_service,
+        db_manager=MagicMock(),
+        lesson_service=MagicMock(spec=LessonContextService),
+    )
 
     # Mock workflow.ainvoke
     mock_workflow = AsyncMock()
@@ -24,7 +29,11 @@ async def test_teacher_agent_chat(mock_gemini_service: MagicMock, db_session: As
 
 @pytest.mark.asyncio
 async def test_teacher_agent_chat_stream(mock_gemini_service: MagicMock, db_session: AsyncSession):
-    agent = TeacherAgent(gemini_service=mock_gemini_service, db_manager=MagicMock())
+    agent = TeacherAgent(
+        gemini_service=mock_gemini_service,
+        db_manager=MagicMock(),
+        lesson_service=MagicMock(spec=LessonContextService),
+    )
 
     # Mock workflow.astream_events
     async def mock_events(*_args: Any, **_kwargs: Any) -> Any:
