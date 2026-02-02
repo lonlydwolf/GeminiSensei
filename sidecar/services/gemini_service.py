@@ -52,7 +52,7 @@ class GeminiService:
                 system_instruction=system_instruction,
                 tools=tools if search else None,
                 response_mime_type=response_mime_type,
-                safety_settings=SAFETY_SETTINGS,
+                safety_settings=settings.SAFETY_SETTINGS,
             )
 
             response = await self.client.aio.models.generate_content(  # pyright: ignore[reportUnknownMemberType]
@@ -91,7 +91,7 @@ class GeminiService:
                 max_output_tokens=8192,
                 system_instruction=system_instruction,
                 tools=tools if search else None,
-                safety_settings=SAFETY_SETTINGS,
+                safety_settings=settings.SAFETY_SETTINGS,
             )
 
             # In v2 SDK, generate_content_stream returns an async iterator directly
@@ -109,23 +109,3 @@ class GeminiService:
 
 # Instance
 gemini_service = GeminiService()
-
-
-SAFETY_SETTINGS = [
-    types.SafetySetting(
-        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    ),
-    types.SafetySetting(
-        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    ),
-    types.SafetySetting(
-        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    ),
-    types.SafetySetting(
-        category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    ),
-]
