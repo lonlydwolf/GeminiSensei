@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.code_reviewer.agent import CodeReviewerAgent
 from agents.manager import agent_manager
-from core.types import CodeReviewStatus
+from core.types import AgentID, CodeReviewStatus
 from database.models import CodeReview
 
 
@@ -42,7 +42,7 @@ class ReviewService:
         await db.refresh(review_record)
 
         # 2. Get Agent
-        agent = cast(CodeReviewerAgent, agent_manager.get_agent("reviewer"))
+        agent = cast(CodeReviewerAgent, agent_manager.get_agent(AgentID.REVIEWER))
 
         # 3. Stream Response
         # Note: In a real scenario, we might want to update the review record with the feedback

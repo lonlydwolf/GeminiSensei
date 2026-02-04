@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import TypedDict
 
 
 class RoadmapStatus(str, Enum):
@@ -17,6 +18,18 @@ class CodeReviewStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class AgentID(str, Enum):
+    TEACHER = "teacher"
+    REVIEWER = "reviewer"
+
+
+class AgentMetadata(TypedDict):
+    id: str
+    name: str
+    description: str
+    icon: str
 
 
 class RoadmapError(Exception):
