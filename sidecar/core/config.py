@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # API Settings
     GEMINI_API_KEY: str = Field(default="")
-    
+
     # Safety Settings
     SAFETY_SETTINGS: list[types.SafetySetting] = [
         types.SafetySetting(

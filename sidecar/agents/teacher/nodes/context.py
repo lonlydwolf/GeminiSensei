@@ -59,7 +59,7 @@ async def context_enrichment_node(
     try:
         # Get service from config or instantiate (fallback)
         service: LessonContextService = configurable.get("lesson_service") or LessonContextService()
-        
+
         context = await service.get_context(lesson_id, db_session)
         return {
             "lesson_name": context.name,

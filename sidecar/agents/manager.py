@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from agents.base import BaseAgent
 from agents.code_reviewer.agent import CodeReviewerAgent
 from agents.teacher.agent import TeacherAgent
+from core.types import AgentID, AgentMetadata
 from database.session import dbsessionmanager
 from services.gemini_service import gemini_service
 from services.lesson_service import LessonContextService
@@ -18,7 +19,7 @@ class AgentManager:
     """Manages the lifecycle and retrieval of specialized agents."""
 
     def __init__(self) -> None:
-        self._agents: dict[str, BaseAgent] = {}
+        self._agents: dict[AgentID, BaseAgent] = {}
         self._is_initialized: bool = False
 
     async def initialize_all(self) -> None:
@@ -30,15 +31,15 @@ class AgentManager:
         lesson_service = LessonContextService()
 
         # Initialize the teacher agent if not present
-        if "teacher" not in self._agents:
-            self._agents["teacher"] = TeacherAgent(
+        if AgentID.TEACHER not in self._agents:
+            self._agents[AgentID.TEACHER] = TeacherAgent(
                 gemini_service=gemini_service,
                 db_manager=dbsessionmanager,
                 lesson_service=lesson_service,
             )
 
-        if "reviewer" not in self._agents:
-            self._agents["reviewer"] = CodeReviewerAgent(
+        if AgentID.REVIEWER not in self._agents:
+            self._agents[AgentID.REVIEWER] = CodeReviewerAgent(
                 gemini_service=gemini_service,
                 db_manager=dbsessionmanager,
                 lesson_service=lesson_service,
@@ -54,7 +55,7 @@ class AgentManager:
 
         self._is_initialized = True
 
-    def get_agent(self, name: str = "teacher") -> BaseAgent:
+    def get_agent(self, name: AgentID = AgentID.TEACHER) -> BaseAgent:
         """Get a specific agent instance.
 
         Args:
@@ -73,6 +74,48 @@ class AgentManager:
             )
 
         return self._agents[name]
+
+    def get_agents_metadata(self) -> list[AgentMetadata]:
+        """Get metadata for all initialized agents.
+
+        Returns:
+            List of metadata dictionaries.
+        """
+        metadata: list[AgentMetadata] = []
+        # Hardcoded metadata mapping for now, matching the existing agents
+        # In a more dynamic system, this could be part of the agent class itself
+        agent_info: dict[AgentID, dict[str, str]] = {
+            AgentID.TEACHER: {
+                "name": "General Tutor",
+                "description": "Your AI programming teacher",
+                "icon": "GraduationCap",
+            },
+            AgentID.REVIEWER: {
+                "name": "Code Reviewer",
+                "description": "Specialized agent for code reviews and feedback",
+                "icon": "FileCode",
+            },
+        }
+
+        for agent_id in self._agents:
+            info = agent_info.get(
+                agent_id,
+                {
+                    "name": agent_id.capitalize(),
+                    "description": f"The {agent_id} agent",
+                    "icon": "Bot",
+                },
+            )
+            # Create a complete metadata dict that satisfies AgentMetadata TypedDict
+            metadata_item: AgentMetadata = {
+                "id": agent_id.value,
+                "name": info["name"],
+                "description": info["description"],
+                "icon": info["icon"],
+            }
+            metadata.append(metadata_item)
+
+        return metadata
 
     async def close_all(self) -> None:
         """Close all agents and cleanup resources."""

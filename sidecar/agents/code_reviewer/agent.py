@@ -135,7 +135,8 @@ class CodeReviewerAgent(BaseAgent):
                         yield str(token)
 
             # Fallback for static messages (e.g. guardrails or errors)
-            # Filter specifically for the 'reviewer' node to avoid duplicate yields from graph root events
+            # Filter specifically for the 'reviewer' node
+            # to avoid duplicate yields from graph root events
             elif (
                 event["event"] == "on_chain_end"
                 and event.get("name") == "reviewer"
@@ -144,10 +145,10 @@ class CodeReviewerAgent(BaseAgent):
                 # The final output is in event["data"]["output"]
                 output = event.get("data", {}).get("output", {})
                 if isinstance(output, dict) and "messages" in output:
-                    messages = output["messages"]
+                    messages = output["messages"]  # pyright: ignore[reportUnknownVariableType]
                     if messages:
-                        last_msg = messages[-1]
-                        content = getattr(last_msg, "content", "")
+                        last_msg = messages[-1]  # pyright: ignore[reportUnknownVariableType]
+                        content = getattr(last_msg, "content", "")  # pyright: ignore[reportUnknownArgumentType]
                         if content:
                             yield str(content)
 
