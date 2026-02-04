@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.manager import agent_manager
+from core.types import AgentID
 from database.session import get_db
 from services.review_service import ReviewService
 
@@ -23,6 +24,7 @@ db_dep = Annotated[AsyncSession, Depends(get_db)]
 class ChatRequest(BaseModel):
     lesson_id: str
     message: str
+    agent_id: AgentID | None = None
 
 
 @router.post("/stream")
@@ -73,11 +75,15 @@ async def chat_stream(request: ChatRequest, db: db_dep):
         except Exception as e:
             logger.error(f"Review agent retrieval error: {e}")
 
+    # Use specified agent_id or default to teacher
+    target_agent = request.agent_id or AgentID.TEACHER
     try:
-        agent = agent_manager.get_agent("teacher")
+        agent = agent_manager.get_agent(target_agent)
     except RuntimeError as e:
         logger.error(f"Agent manager error: {e}")
-        raise HTTPException(status_code=503, detail="Chat service not initialized") from e
+        raise HTTPException(
+            status_code=503, detail=f"Agent '{target_agent}' not initialized"
+        ) from e
 
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
