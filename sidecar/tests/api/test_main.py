@@ -1,4 +1,3 @@
-
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
@@ -26,15 +25,15 @@ async def test_lifespan_missing_api_key():
     # Store original key
     original_key = settings.GEMINI_API_KEY
     settings.GEMINI_API_KEY = ""
-    
+
     try:
         # Mock app
         app = FastAPI()
-        
+
         # Act & Assert
-        with pytest.raises(RuntimeError, match="GEMINI_API_KEY is missing"):
-            async with lifespan(app):
-                pass
+        # Should NOT raise RuntimeError anymore
+        async with lifespan(app):
+            pass
     finally:
         # Restore key
         settings.GEMINI_API_KEY = original_key
