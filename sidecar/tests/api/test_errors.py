@@ -38,13 +38,13 @@ async def test_submit_review_wrong_agent_type(client: AsyncClient):
     with patch("agents.manager.agent_manager.get_agent") as mock_get:
         mock_get.return_value = MagicMock(spec=TeacherAgent)
         response = await client.post("/api/review/submit", json=payload)
-        
+
         # The new implementation returns 200 OK and streams the error
         assert response.status_code == 200
-        
+
         content = ""
         async for line in response.aiter_lines():
             content += line
-            
+
         # Verify the error is in the stream
         assert "[ERROR]" in content or "has no attribute 'review'" in content

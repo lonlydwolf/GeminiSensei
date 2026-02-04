@@ -2,20 +2,17 @@ import socket
 
 import pytest
 
-from main import get_free_port
+from main import bind_random_port
 
 
-def test_get_free_port():
-    port = get_free_port()
-    assert isinstance(port, int)
-    assert port > 0
-
-    # Verify port is actually available
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def test_bind_random_port():
+    sock, port = bind_random_port()
     try:
-        s.bind(("127.0.0.1", port))
+        assert isinstance(port, int)
+        assert port > 0
+        assert isinstance(sock, socket.socket)
     finally:
-        s.close()
+        sock.close()
 
 
 @pytest.mark.asyncio
