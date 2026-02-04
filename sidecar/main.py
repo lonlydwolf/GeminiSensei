@@ -7,12 +7,13 @@ from typing import cast
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 
 from agents.manager import agent_manager
 from core.config import settings
 from database.migrations import run_migrations
 from database.session import dbsessionmanager
-from routers import chat, review, roadmap
+from routers import agents, app_settings, chat, review, roadmap
 
 # Configure logging
 logging.basicConfig(
@@ -21,18 +22,22 @@ logging.basicConfig(
 logger = logging.getLogger("sidecar")
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    # Validate configuration
+def validate_config():
+    """Validates core configuration. Returns True if valid, False otherwise."""
     if not settings.GEMINI_API_KEY:
         error_msg = (
             "GEMINI_API_KEY is missing. AI features will fail. "
-            "Please set it in .env or environment variables."
+            "Please set it in Settings or environment variables."
         )
-        logger.critical(error_msg)
-        # We raise a RuntimeError to stop startup if the API key is missing
-        # This is a strict requirement for the sidecar
-        raise RuntimeError(error_msg)
+        logger.warning(error_msg)
+        return False
+    return True
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Validate configuration on startup
+    _ = validate_config()
 
     # Initialize database on startup
     logger.info("Initializing database...")
@@ -53,9 +58,20 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="GeminiSensei Sidecar", lifespan=lifespan)
 
+# Add CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(roadmap.router)
 app.include_router(chat.router)
 app.include_router(review.router)
+app.include_router(agents.router)
+app.include_router(app_settings.router)
 
 
 @app.get("/")
@@ -81,24 +97,33 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(f"WebSocket error: {e}")
 
 
-def get_free_port() -> int:
-    """Returns a free port on the local machine."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.bind(("127.0.0.1", 0))
-        address_info = cast(tuple[str, int], s.getsockname())
-        return address_info[1]
-    finally:
-        s.close()
+def bind_random_port() -> tuple[socket.socket, int]:
+    """Binds to a random port and returns the socket and port number."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(("127.0.0.1", 0))
+    # Required for the socket to be useful for uvicorn
+    sock.listen(5)
+    address_info = cast(tuple[str, int], sock.getsockname())
+    return sock, address_info[1]
 
 
 if __name__ == "__main__":
-    # Get a free port assigned by the OS
-    port = get_free_port()
+    # Perform pre-flight checks
+    _ = validate_config()
+
+    # Get a free port assigned by the OS and keep the socket open
+    sock, port = bind_random_port()
 
     # Crucial: Print the port in a format Rust can easily parse
     # and flush stdout immediately.
     print(f"PORT:{port}")
     _ = sys.stdout.flush()
 
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
+    # Use the file descriptor of the already bound socket
+    config = uvicorn.Config(app, fd=sock.fileno(), log_level="info")
+    server = uvicorn.Server(config)
+    
+    try:
+        asyncio.run(server.serve())
+    finally:
+        sock.close()
