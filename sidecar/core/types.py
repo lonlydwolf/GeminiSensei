@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TypedDict
+from typing import NamedTuple, TypedDict
 
 
 class RoadmapStatus(str, Enum):
@@ -23,13 +23,26 @@ class CodeReviewStatus(str, Enum):
 class AgentID(str, Enum):
     TEACHER = "teacher"
     REVIEWER = "reviewer"
+    ORCHESTRATOR = "orchestrator"
 
 
-class AgentMetadata(TypedDict):
-    id: str
+class AgentConfig(TypedDict):
+    """Configuration metadata for an agent."""
+
+    agent_id: str
     name: str
     description: str
+    command: str | None
+    capabilities: list[str]
     icon: str
+
+
+class ParsedCommand(NamedTuple):
+    """Result of command parsing."""
+
+    has_command: bool
+    command: str | None  # e.g., "review"
+    remaining_message: str  # Message without the command
 
 
 class RoadmapError(Exception):

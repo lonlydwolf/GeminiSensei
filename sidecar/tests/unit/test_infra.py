@@ -1,14 +1,28 @@
 from collections.abc import AsyncIterator
+from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import override
 
 from agents.base import BaseAgent
+from core.types import AgentConfig
 from database.session import DBSessionManager
 
 
 class MockAgent(BaseAgent):
+    @classmethod
+    @override
+    def get_config(cls) -> AgentConfig:
+        return AgentConfig(
+            agent_id="mock",
+            name="Mock",
+            description="Mock agent",
+            command="mock",
+            capabilities=[],
+            icon="Bot",
+        )
+
     @override
     async def initialize(self) -> None:
         pass
@@ -21,7 +35,6 @@ class MockAgent(BaseAgent):
     async def chat_stream(
         self, thread_id: str, message: str, db: AsyncSession
     ) -> AsyncIterator[str]:
-        # Need to be an async generator to satisfy AsyncIterator[str]
         yield ""
 
     @override
@@ -31,8 +44,13 @@ class MockAgent(BaseAgent):
 
 @pytest.mark.asyncio
 async def test_base_agent_interface():
-    agent = MockAgent()
+    agent = MockAgent(MagicMock(), MagicMock(), MagicMock())
     assert await agent.initialize() is None
+    # Use dummy values
+    assert await agent.chat("", "", None) == ""  # pyright: ignore[reportArgumentType]
+    async for token in agent.chat_stream("", "", None):  # pyright: ignore[reportArgumentType]
+        assert token == ""
+    assert await agent.close() is None
     # Use dummy values
     assert await agent.chat("", "", None) == ""  # pyright: ignore[reportArgumentType]
     assert agent.chat_stream("", "", None) is not None  # pyright: ignore[reportArgumentType]
