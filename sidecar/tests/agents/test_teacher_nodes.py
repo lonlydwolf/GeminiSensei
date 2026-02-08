@@ -1,5 +1,5 @@
 import json
-from typing import Any, cast
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -55,8 +55,8 @@ async def test_context_enrichment_node(db_session: AsyncSession):
 
     result = await context_enrichment_node(state, config)
 
-    assert result["lesson_name"] == "Python Basics"
-    assert "Learn variables" in cast(list[str], result["objectives"])
+    assert result.get("lesson_name") == "Python Basics"
+    assert "Learn variables" in result.get("objectives", [])
 
 
 @pytest.mark.asyncio
@@ -68,7 +68,7 @@ async def test_guardrail_node_triggered():
     config: RunnableConfig = {"configurable": {"gemini_service": mock_gemini}}
 
     result = await guardrail_node(state, config)
-    assert result["guardrail_triggered"] is True
+    assert result.get("guardrail_triggered") is True
 
 
 @pytest.mark.asyncio

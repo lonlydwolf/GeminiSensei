@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, AsyncContextManager, cast
+from typing import TYPE_CHECKING, Any, AsyncContextManager, cast, override
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -10,10 +10,10 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing_extensions import override
 
 from agents.base import BaseAgent
 from core.config import settings
+from core.types import AgentConfig
 
 from .nodes import context_enrichment_node, guardrail_node, socratic_node
 from .state import AgentState
@@ -48,10 +48,20 @@ class TeacherAgent(BaseAgent):
             lesson_service: Injected lesson context service.
             model_name: Model name to use.
         """
-        self.gemini_service: GeminiService = gemini_service
-        self.db_manager: DBSessionManager = db_manager
-        self.lesson_service: LessonContextService = lesson_service
+        super().__init__(gemini_service, db_manager, lesson_service)
         self.model_name: str = model_name
+
+    @classmethod
+    @override
+    def get_config(cls) -> AgentConfig:
+        return AgentConfig(
+            agent_id="teacher",
+            name="General Tutor",
+            description="Your AI programming teacher for explanations and guidance",
+            command="teach",
+            capabilities=["teaching", "explaining", "tutoring", "questions"],
+            icon="GraduationCap",
+        )
 
     def _create_builder(self) -> StateGraph[AgentState, Any, Any, Any]:  # pyright: ignore[reportExplicitAny]
         """Create LangGraph builder for teaching.

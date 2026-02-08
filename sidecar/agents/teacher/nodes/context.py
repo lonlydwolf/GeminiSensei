@@ -5,16 +5,14 @@ import logging
 from langchain_core.runnables import RunnableConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents.teacher.state import AgentState
+from agents.teacher.state import AgentState, PartialTeacherState
 from database.session import DBSessionManager
 from services.lesson_service import LessonContextService
 
 logger = logging.getLogger(__name__)
 
 
-async def context_enrichment_node(
-    state: AgentState, config: RunnableConfig
-) -> dict[str, str | list[str]]:
+async def context_enrichment_node(state: AgentState, config: RunnableConfig) -> PartialTeacherState:
     """Fetches lesson metadata and documentation links from the database.
 
     Args:
