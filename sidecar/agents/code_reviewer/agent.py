@@ -14,6 +14,7 @@ from typing_extensions import override
 
 from agents.base import BaseAgent
 from core.config import settings
+from core.types import AgentConfig
 from database.session import DBSessionManager
 from services.gemini_service import GeminiService
 from services.lesson_service import LessonContextService
@@ -43,10 +44,20 @@ class CodeReviewerAgent(BaseAgent):
         lesson_service: LessonContextService,
         model_name: str = "gemini-2.0-flash",
     ) -> None:
-        self.gemini_service: GeminiService = gemini_service
-        self.db_manager: DBSessionManager = db_manager
-        self.lesson_service: LessonContextService = lesson_service
+        super().__init__(gemini_service, db_manager, lesson_service)
         self.model_name: str = model_name
+
+    @classmethod
+    @override
+    def get_config(cls) -> AgentConfig:
+        return AgentConfig(
+            agent_id="reviewer",
+            name="Code Reviewer",
+            description="Specialized agent for code review and feedback",
+            command="review",
+            capabilities=["code review", "feedback", "bug detection", "best practices"],
+            icon="FileCode",
+        )
 
     def _create_builder(self) -> StateGraph[CodeReviewerState, Any, Any, Any]:  # pyright: ignore[reportExplicitAny]
         workflow = StateGraph(CodeReviewerState)
@@ -84,15 +95,30 @@ class CodeReviewerAgent(BaseAgent):
 
     @override
     async def chat(self, thread_id: str, message: str, db: AsyncSession) -> str:
-        # For code review, we usually expect code_content and language to be passed
-        # via the state or a specific starting message.
-        # This generic chat method will treat the message as a prompt.
-        raise NotImplementedError("Use specific review submission for this agent.")
+        """Collect tokens from chat_stream and return as a single string."""
+        tokens: list[str] = []
+        async for token in self.chat_stream(thread_id, message, db):
+            tokens.append(token)
+        return "".join(tokens) or "No response generated."
 
     @override
-    def chat_stream(self, thread_id: str, message: str, db: AsyncSession) -> AsyncIterator[str]:
-        # Implementation similar to TeacherAgent if needed
-        raise NotImplementedError("Use specific review submission for this agent.")
+    async def chat_stream(
+        self, thread_id: str, message: str, db: AsyncSession
+    ) -> AsyncIterator[str]:
+        """Wrapper for review() to satisfy BaseAgent interface.
+
+        Uses ReviewService to ensure persistence.
+        """
+        from services.review_service import ReviewService
+
+        service = ReviewService()
+        async for token in service.submit_review(
+            lesson_id=thread_id,
+            code=message,
+            language="python",
+            db=db,
+        ):
+            yield token
 
     async def review(
         self, review_id: str, lesson_id: str, code: str, language: str, db: AsyncSession

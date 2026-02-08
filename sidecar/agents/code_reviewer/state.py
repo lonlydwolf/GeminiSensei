@@ -31,3 +31,17 @@ class CodeReviewerState(TypedDict):
     # Analysis fields
     findings: list[CodeReviewerFinding]
     guardrail_triggered: bool
+
+
+class PartialCodeReviewerState(TypedDict, total=False):
+    """Partial state for Code Reviewer nodes."""
+
+    messages: list[BaseMessage]
+    lesson_id: str
+    review_id: str
+    code_content: str
+    language: str
+    lesson_name: str
+    objectives: list[str]
+    findings: list[CodeReviewerFinding]
+    guardrail_triggered: bool

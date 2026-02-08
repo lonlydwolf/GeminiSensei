@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,16 +33,22 @@ async def test_reviewer_agent_review(mock_gemini_service: MagicMock, db_session:
 
 
 @pytest.mark.asyncio
-async def test_reviewer_agent_chat_not_implemented(
-    mock_gemini_service: MagicMock, db_session: AsyncSession
-):
+async def test_reviewer_agent_chat(mock_gemini_service: MagicMock, db_session: AsyncSession):
     agent = CodeReviewerAgent(
         gemini_service=mock_gemini_service,
         db_manager=MagicMock(),
         lesson_service=MagicMock(spec=LessonContextService),
     )
 
-    with pytest.raises(NotImplementedError):
-        _ = await agent.chat("t1", "hi", db_session)
-    with pytest.raises(NotImplementedError):
-        _ = agent.chat_stream("t1", "hi", db_session)
+    # Mock ReviewService
+    with patch("services.review_service.ReviewService.submit_review") as mock_submit:
+
+        async def mock_generator(*_args: Any, **_kwargs: Any) -> Any:
+            yield "token1"
+            yield "token2"
+
+        mock_submit.side_effect = mock_generator
+
+        response = await agent.chat("t1", "hi", db_session)
+        assert response == "token1token2"
+        mock_submit.assert_called_once()

@@ -2,7 +2,7 @@ import json
 import logging
 
 from langchain_core.callbacks.manager import adispatch_custom_event
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,14 +12,14 @@ from core.types import CodeReviewStatus
 from database.models import CodeReview
 from services.gemini_service import GeminiService
 
-from ..state import CodeReviewerState
+from ..state import CodeReviewerState, PartialCodeReviewerState
 
 logger = logging.getLogger(__name__)
 
 
 async def socratic_review_node(
     state: CodeReviewerState, config: RunnableConfig
-) -> dict[str, list[BaseMessage]]:
+) -> PartialCodeReviewerState:
     """Generate the Socratic feedback response."""
     configurable = config.get("configurable", {})
     gemini: GeminiService | None = configurable.get("gemini_service")
