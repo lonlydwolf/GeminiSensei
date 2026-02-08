@@ -1,16 +1,11 @@
 import logging
-from typing import TYPE_CHECKING
 
+from agents.agent_registry import agent_registry
 from agents.base import BaseAgent
-from agents.code_reviewer.agent import CodeReviewerAgent
-from agents.teacher.agent import TeacherAgent
-from core.types import AgentID, AgentMetadata
+from core.types import AgentConfig
 from database.session import dbsessionmanager
 from services.gemini_service import gemini_service
 from services.lesson_service import LessonContextService
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -19,114 +14,75 @@ class AgentManager:
     """Manages the lifecycle and retrieval of specialized agents."""
 
     def __init__(self) -> None:
-        self._agents: dict[AgentID, BaseAgent] = {}
+        self._agent_instances: dict[str, BaseAgent] = {}
         self._is_initialized: bool = False
 
     async def initialize_all(self) -> None:
-        """Initialize all registered agents."""
+        """Initialize all registered agents"""
         if self._is_initialized:
             return
+
+        # Discover agents dynamically
+        agent_registry.discover_agents()
 
         # Initialize shared services
         lesson_service = LessonContextService()
 
-        # Initialize the teacher agent if not present
-        if AgentID.TEACHER not in self._agents:
-            self._agents[AgentID.TEACHER] = TeacherAgent(
+        # Initialize all discovered agents
+        for agent_id in agent_registry.get_all_agent_ids():
+            agent_class = agent_registry.get_agent_class(agent_id)
+
+            # Instantiate the agent
+            agent_instance = agent_class(
                 gemini_service=gemini_service,
                 db_manager=dbsessionmanager,
                 lesson_service=lesson_service,
             )
 
-        if AgentID.REVIEWER not in self._agents:
-            self._agents[AgentID.REVIEWER] = CodeReviewerAgent(
-                gemini_service=gemini_service,
-                db_manager=dbsessionmanager,
-                lesson_service=lesson_service,
-            )
+            self._agent_instances[agent_id] = agent_instance
 
-        # Initialize all agents
-        for name, agent in self._agents.items():
+            # Initialize the agent
             try:
-                await agent.initialize()
-                logger.info(f"Agent '{name}' initialized.")
+                await agent_instance.initialize()
+                logger.info(f"Agent '{agent_id}' initialized.")
             except Exception as e:
-                logger.error(f"Failed to initialize agent '{name}': {e}")
-
+                logger.error(f"Failed to initialize agent '{agent_id}': {e}")
         self._is_initialized = True
 
-    def get_agent(self, name: AgentID = AgentID.TEACHER) -> BaseAgent:
-        """Get a specific agent instance.
+    def get_agent(self, agent_id: str = "teacher") -> BaseAgent:
+        """Get a specific agent instance by ID."""
 
-        Args:
-            name: Name of the agent configuration (default: "teacher")
-
-        Returns:
-            BaseAgent instance
-
-        Raises:
-            RuntimeError: If the agent has not been initialized.
-        """
-        if name not in self._agents:
+        if agent_id not in self._agent_instances:
             raise RuntimeError(
-                f"Agent '{name}' has not been initialized. "
+                f"Agent '{agent_id}' has not been initialized. "
                 + "Ensure 'await initialize_all()' has been called in startup."
             )
+        return self._agent_instances[agent_id]
 
-        return self._agents[name]
-
-    def get_agents_metadata(self) -> list[AgentMetadata]:
+    def get_agents_metadata(self) -> list[AgentConfig]:
         """Get metadata for all initialized agents.
 
         Returns:
             List of metadata dictionaries.
         """
-        metadata: list[AgentMetadata] = []
-        # Hardcoded metadata mapping for now, matching the existing agents
-        # In a more dynamic system, this could be part of the agent class itself
-        agent_info: dict[AgentID, dict[str, str]] = {
-            AgentID.TEACHER: {
-                "name": "General Tutor",
-                "description": "Your AI programming teacher",
-                "icon": "GraduationCap",
-            },
-            AgentID.REVIEWER: {
-                "name": "Code Reviewer",
-                "description": "Specialized agent for code reviews and feedback",
-                "icon": "FileCode",
-            },
-        }
+        metadata: list[AgentConfig] = []
 
-        for agent_id in self._agents:
-            info = agent_info.get(
-                agent_id,
-                {
-                    "name": agent_id.capitalize(),
-                    "description": f"The {agent_id} agent",
-                    "icon": "Bot",
-                },
-            )
-            # Create a complete metadata dict that satisfies AgentMetadata TypedDict
-            metadata_item: AgentMetadata = {
-                "id": agent_id.value,
-                "name": info["name"],
-                "description": info["description"],
-                "icon": info["icon"],
-            }
-            metadata.append(metadata_item)
+        for agent_id in self._agent_instances:
+            agent_class = agent_registry.get_agent_class(agent_id)
+            config = agent_class.get_config()
 
+            metadata.append(config)
         return metadata
 
     async def close_all(self) -> None:
         """Close all agents and cleanup resources."""
-        for name, agent in self._agents.items():
+        for agent_id, agent in self._agent_instances.items():
             try:
                 await agent.close()
-                logger.info(f"Agent '{name}' closed.")
+                logger.info(f"Agent '{agent_id}' closed.")
             except Exception as e:
-                logger.error(f"Error closing agent '{name}': {e}")
-
-        self._agents.clear()
+                logger.error(f"Error closing agent '{agent_id}': {e}")
+        self._agent_instances.clear()
         self._is_initialized = False
         logger.info("All agents closed.")
 
