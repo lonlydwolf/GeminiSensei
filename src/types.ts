@@ -18,7 +18,7 @@ export enum AgentMode {
 }
 
 export interface Agent {
-  id: string;
+  agent_id: string;
   name: string;
   description: string;
   icon: string;

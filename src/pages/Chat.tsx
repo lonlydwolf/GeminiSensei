@@ -21,8 +21,8 @@ export default function Chat() {
 
   // Set default agent when agents load if needed
   useEffect(() => {
-    if (agents && agents.length > 0 && !agents.find((a) => a.id === currentAgentId)) {
-      setCurrentAgentId(agents[0].id);
+    if (agents && agents.length > 0 && !agents.find((a) => a.agent_id === currentAgentId)) {
+      setCurrentAgentId(agents[0].agent_id);
     }
   }, [agents]);
 
@@ -137,7 +137,7 @@ export default function Chat() {
   }
 
   // Get current agent info safely
-  const activeAgent = agents?.find((a) => a.id === currentAgentId);
+  const activeAgent = agents?.find((a) => a.agent_id === currentAgentId);
   const ActiveIcon = activeAgent ? getIconComponent(activeAgent.icon) : Bot;
 
   // Find current lesson title for display
@@ -175,7 +175,7 @@ export default function Chat() {
                 <option>Loading agents...</option>
               ) : (
                 agents?.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
+                  <option key={agent.agent_id} value={agent.agent_id}>
                     {agent.name}
                   </option>
                 ))
