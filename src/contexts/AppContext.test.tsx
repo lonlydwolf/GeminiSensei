@@ -1,8 +1,18 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AppProvider, useApp } from './AppContext';
+import { AppProvider } from './AppContext';
+import { useApp } from '../hooks/useApp';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
+
+// Mock API
+vi.mock('../lib/api', () => ({
+  api: {
+    setPort: vi.fn(),
+    setToken: vi.fn(),
+    get: vi.fn().mockResolvedValue({ gemini_api_key_set: false }),
+  },
+}));
 
 // Helper component to consume context
 const TestComponent = () => {
@@ -31,12 +41,10 @@ describe('AppContext', () => {
   });
 
   it('should update status when sidecar-ready event is received', async () => {
-    let eventCallback: (event: { payload: string }) => void = () => {};
+    let eventCallback: (event: { payload: unknown }) => void = () => {};
 
-    (listen as any).mockImplementation((event: string, callback: any) => {
-      if (event === 'sidecar-ready') {
-        eventCallback = callback;
-      }
+    vi.mocked(listen).mockImplementation((_event, callback) => {
+      eventCallback = callback as (event: { payload: unknown }) => void;
       return Promise.resolve(() => {});
     });
 
@@ -46,9 +54,9 @@ describe('AppContext', () => {
       </AppProvider>
     );
 
-    // Simulate event
+    // Simulate event with new object structure
     await act(async () => {
-      eventCallback({ payload: '12345' });
+      eventCallback({ payload: { port: '12345', token: 'secret' } });
     });
 
     await waitFor(() => {
@@ -57,8 +65,13 @@ describe('AppContext', () => {
     });
   });
 
-  it('should poll for existing port on mount', async () => {
-    (invoke as any).mockResolvedValue('54321');
+  it('should poll for existing config on mount', async () => {
+    vi.mocked(invoke).mockImplementation((cmd) => {
+      if (cmd === 'get_sidecar_config') {
+        return Promise.resolve({ port: '54321', token: 'secret' });
+      }
+      return Promise.resolve(null);
+    });
 
     render(
       <AppProvider>

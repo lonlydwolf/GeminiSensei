@@ -1,18 +1,19 @@
-import { RoadmapItem } from '../types';
+import {
+  RoadmapItem,
+  GeminiRoadmapPayload,
+  GeminiRoadmapResponse,
+  GeminiHistoryItem,
+} from '../types';
 import { api } from '../lib/api';
 
 export class GeminiService {
-  constructor(_apiKey: string) {
+  constructor() {
     // API key managed by sidecar
   }
 
   async updateApiKey(key: string) {
     if (key) {
-      try {
-        await api.post('/api/settings/api-key', { api_key: key });
-      } catch (error) {
-        console.error('Failed to sync API key to backend:', error);
-      }
+      await api.post('/api/settings/api-key', { api_key: key });
     }
   }
 
@@ -23,7 +24,7 @@ export class GeminiService {
   ): Promise<RoadmapItem[]> {
     try {
       // 1. Create roadmap via sidecar
-      const payload: any = { goal };
+      const payload: GeminiRoadmapPayload = { goal };
       if (background) payload.background = background;
       if (preferences) payload.preferences = preferences;
 
@@ -32,17 +33,17 @@ export class GeminiService {
       const roadmapId = response.roadmap_id;
 
       // 2. Fetch detailed roadmap
-      const detailedRoadmap = await api.get<any>(`/api/roadmap/${roadmapId}`);
+      const detailedRoadmap = await api.get<GeminiRoadmapResponse>(`/api/roadmap/${roadmapId}`);
 
       // 3. Map backend schema to frontend RoadmapItem[]
       if (detailedRoadmap.phases && Array.isArray(detailedRoadmap.phases)) {
-        return detailedRoadmap.phases.map((phase: any) => ({
+        return detailedRoadmap.phases.map((phase) => ({
           title: phase.name,
           description: '',
           duration: '',
           lessons: phase.lessons
-            ? phase.lessons.map((l: any) => ({
-                id: l.id || l.lesson_id, // Fix: Use l.id from backend Pydantic model
+            ? phase.lessons.map((l) => ({
+                id: l.id || '', // Ensure id is string
                 title: l.name,
                 description: l.description || '',
                 status: 'pending',
@@ -58,7 +59,12 @@ export class GeminiService {
     }
   }
 
-  async *streamChat(message: string, _history: any[], agentId: string, lessonId?: string) {
+  async *streamChat(
+    message: string,
+    _history: GeminiHistoryItem[],
+    agentId: string,
+    lessonId?: string
+  ) {
     // We'll use the /api/chat/stream endpoint
     const stream = api.stream('/api/chat/stream', {
       message,

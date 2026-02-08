@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Home, Map, MessageSquare, Settings, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../hooks/useApp';
 import { AppRoute } from '../types';
 
 export default function Sidebar() {

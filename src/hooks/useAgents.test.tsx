@@ -3,7 +3,6 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useAgents } from './useAgents';
 import { api } from '../lib/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 // Mock the API
 vi.mock('../lib/api', () => ({
@@ -32,9 +31,9 @@ describe('useAgents', () => {
 
   it('should fetch agents successfully', async () => {
     const mockAgents = [
-      { id: 'teacher', name: 'Teacher', description: 'Desc', icon: 'Icon' },
+      { agent_id: 'teacher', name: 'Teacher', description: 'Desc', icon: 'Icon' },
     ];
-    (api.get as any).mockResolvedValue(mockAgents);
+    vi.mocked(api.get).mockResolvedValue(mockAgents);
 
     const { result } = renderHook(() => useAgents(), { wrapper });
 
@@ -47,7 +46,7 @@ describe('useAgents', () => {
   });
 
   it('should handle error during fetch', async () => {
-    (api.get as any).mockRejectedValue(new Error('Fetch failed'));
+    vi.mocked(api.get).mockRejectedValue(new Error('Fetch failed'));
 
     const { result } = renderHook(() => useAgents(), { wrapper });
 

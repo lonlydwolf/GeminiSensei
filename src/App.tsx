@@ -1,5 +1,4 @@
-import React from 'react';
-import { useApp } from './contexts/AppContext';
+import { useApp } from './hooks/useApp';
 import { AppRoute } from './types';
 import Layout from './components/Layout';
 import Home from './pages/Home';

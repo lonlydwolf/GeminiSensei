@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useState, FormEvent } from 'react';
+import { useApp } from '../hooks/useApp';
 import { Sparkles, Book, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function Roadmap() {
@@ -10,7 +10,7 @@ export default function Roadmap() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const handleGenerate = async (e: FormEvent) => {
     e.preventDefault();
     if (!apiKey) {
       setError('Please set your API Key in Settings or Home first.');

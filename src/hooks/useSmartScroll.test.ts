@@ -15,11 +15,12 @@ describe('useSmartScroll', () => {
     };
 
     const { rerender, result } = renderHook(({ dep }) => useSmartScroll(dep), {
-      initialProps: { dep: [] }
+      initialProps: { dep: [] as string[] }
     });
 
     // Set the ref manually
-    (result.current as any).current = mockElement;
+    const elementRef = result.current as React.MutableRefObject<HTMLDivElement | null>;
+    elementRef.current = mockElement as unknown as HTMLDivElement;
 
     // Trigger update
     rerender({ dep: ['new message'] });
@@ -39,11 +40,12 @@ describe('useSmartScroll', () => {
     };
 
     const { rerender, result } = renderHook(({ dep }) => useSmartScroll(dep), {
-      initialProps: { dep: [] }
+      initialProps: { dep: [] as string[] }
     });
 
     // Set the ref manually
-    (result.current as any).current = mockElement;
+    const elementRef = result.current as React.MutableRefObject<HTMLDivElement | null>;
+    elementRef.current = mockElement as unknown as HTMLDivElement;
     
     // Simulate user scrolled up (manually trigger the internal scroll handler or initial state)
     // In the real hook, we'd trigger a scroll event. 
