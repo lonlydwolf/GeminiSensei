@@ -3,11 +3,11 @@ import json
 from langchain_core.runnables import RunnableConfig
 
 from agents.prompts import GUARDRAIL_SYSTEM, GUARDRAIL_USER_TEMPLATE
-from agents.teacher.state import AgentState
+from agents.teacher.state import AgentState, PartialTeacherState
 from services.gemini_service import GeminiService
 
 
-async def guardrail_node(state: AgentState, config: RunnableConfig) -> dict[str, bool]:
+async def guardrail_node(state: AgentState, config: RunnableConfig) -> PartialTeacherState:
     """Node that detects if the student is trying to bypass the Socratic method.
 
     Args:

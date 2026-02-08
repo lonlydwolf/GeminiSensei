@@ -16,3 +16,15 @@ class AgentState(TypedDict):
     objectives: list[str]
     guardrail_triggered: bool
     suggested_docs: list[str]
+
+
+class PartialTeacherState(TypedDict, total=False):
+    """Partial state for Teacher nodes."""
+
+    messages: list[BaseMessage]
+    lesson_id: str
+    lesson_name: str
+    lesson_context: str
+    objectives: list[str]
+    guardrail_triggered: bool
+    suggested_docs: list[str]

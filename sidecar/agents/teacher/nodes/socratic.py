@@ -1,13 +1,13 @@
 from langchain_core.callbacks.manager import adispatch_custom_event
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 
 from agents.prompts import TEACHER_SYSTEM
-from agents.teacher.state import AgentState
+from agents.teacher.state import AgentState, PartialTeacherState
 from services.gemini_service import GeminiService
 
 
-async def socratic_node(state: AgentState, config: RunnableConfig) -> dict[str, list[BaseMessage]]:
+async def socratic_node(state: AgentState, config: RunnableConfig) -> PartialTeacherState:
     """Socratic Reasoning node that generates pedagogical responses with streaming.
 
     This node implements the Socratic method by asking discovery questions
