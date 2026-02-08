@@ -17,7 +17,6 @@ from agents.orchestrator.nodes.delegation_executor import delegate_to_agent_node
 from agents.orchestrator.nodes.delegation_router import route_to_agent_node
 from agents.orchestrator.state import OrchestratorState
 from agents.prompt_templates import PromptTemplates
-from core.types import AgentConfig
 
 if TYPE_CHECKING:
     from database.session import DBSessionManager
@@ -39,6 +38,7 @@ class OrchestratorAgent(BaseAgent):
     - Pure functional nodes make testing and debugging easier
     """
 
+    agent_id: str = "orchestrator"
     graph: CompiledStateGraph[OrchestratorState, Any, OrchestratorState, OrchestratorState]  # pyright: ignore[reportExplicitAny]
     streaming_graph: CompiledStateGraph[
         OrchestratorState, Any, OrchestratorState, OrchestratorState  # pyright: ignore[reportExplicitAny]
@@ -53,23 +53,6 @@ class OrchestratorAgent(BaseAgent):
         super().__init__(gemini_service, db_manager, lesson_service)
         # Note: graph is not initialized here - it's set in initialize()
         # Type checker knows it will be set before use
-
-    @classmethod
-    @override
-    def get_config(cls) -> AgentConfig:
-        """Return configuration for the orchestrator agent.
-
-        The orchestrator has no command because it's the default entry point.
-        Users don't explicitly invoke it - it's always the first agent contacted.
-        """
-        return AgentConfig(
-            agent_id="orchestrator",
-            name="Orchestrator",
-            description="Main coordinator that routes requests to specialized agents",
-            command=None,  # No command - this is the default entry point
-            capabilities=["routing", "delegation", "coordination"],
-            icon="Network",
-        )
 
     @override
     async def initialize(self) -> None:
@@ -193,8 +176,7 @@ class OrchestratorAgent(BaseAgent):
             agent = agent_manager.get_agent(agent_id)
 
             # Get agent configuration for prompt generation
-            agent_class = agent_registry.get_agent_class(agent_id)
-            config = agent_class.get_config()
+            config = agent_registry.get_config(agent_id)
 
             # Format conversation history
             messages = result_state.get("messages", [])

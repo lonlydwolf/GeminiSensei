@@ -1,0 +1,26 @@
+{
+  "orchestrator": {
+    "agent_id": "orchestrator",
+    "name": "Orchestrator",
+    "description": "Main coordinator that routes requests to specialized agents",
+    "command": null,
+    "capabilities": ["routing", "delegation", "coordination"],
+    "icon": "Network"
+  },
+  "teacher": {
+    "agent_id": "teacher",
+    "name": "General Tutor",
+    "description": "Your AI programming teacher for explanations and guidance",
+    "command": "teach",
+    "capabilities": ["teaching", "explaining", "tutoring", "questions"],
+    "icon": "GraduationCap"
+  },
+  "reviewer": {
+    "agent_id": "reviewer",
+    "name": "Code Reviewer",
+    "description": "Specialized agent for code review and feedback",
+    "command": "review",
+    "capabilities": ["code review", "feedback", "bug detection", "best practices"],
+    "icon": "FileCode"
+  }
+}

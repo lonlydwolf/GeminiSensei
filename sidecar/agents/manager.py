@@ -65,14 +65,7 @@ class AgentManager:
         Returns:
             List of metadata dictionaries.
         """
-        metadata: list[AgentConfig] = []
-
-        for agent_id in self._agent_instances:
-            agent_class = agent_registry.get_agent_class(agent_id)
-            config = agent_class.get_config()
-
-            metadata.append(config)
-        return metadata
+        return agent_registry.get_all_configs()
 
     async def close_all(self) -> None:
         """Close all agents and cleanup resources."""

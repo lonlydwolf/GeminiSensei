@@ -14,7 +14,6 @@ from typing_extensions import override
 
 from agents.base import BaseAgent
 from core.config import settings
-from core.types import AgentConfig
 from database.session import DBSessionManager
 from services.gemini_service import GeminiService
 from services.lesson_service import LessonContextService
@@ -33,6 +32,7 @@ logger = logging.getLogger(__name__)
 class CodeReviewerAgent(BaseAgent):
     """Agent that reviews code through Socratic questioning."""
 
+    agent_id: str = "reviewer"
     _checkpointer_cm: AsyncContextManager[AsyncSqliteSaver] | None = None
     _checkpointer: AsyncSqliteSaver | None = None
     _workflow: CompiledStateGraph[CodeReviewerState, Any, Any, Any] | None = None  # pyright: ignore[reportExplicitAny]
@@ -46,18 +46,6 @@ class CodeReviewerAgent(BaseAgent):
     ) -> None:
         super().__init__(gemini_service, db_manager, lesson_service)
         self.model_name: str = model_name
-
-    @classmethod
-    @override
-    def get_config(cls) -> AgentConfig:
-        return AgentConfig(
-            agent_id="reviewer",
-            name="Code Reviewer",
-            description="Specialized agent for code review and feedback",
-            command="review",
-            capabilities=["code review", "feedback", "bug detection", "best practices"],
-            icon="FileCode",
-        )
 
     def _create_builder(self) -> StateGraph[CodeReviewerState, Any, Any, Any]:  # pyright: ignore[reportExplicitAny]
         workflow = StateGraph(CodeReviewerState)

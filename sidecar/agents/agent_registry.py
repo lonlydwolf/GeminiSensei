@@ -17,6 +17,41 @@ class AgentRegistry:
     def __init__(self):
         self._agents: dict[str, type[BaseAgent]] = {}
         self._command_map: dict[str, str] = {}  # command -> agent_id
+        self._metadata: dict[str, AgentConfig] = {}
+        self._load_metadata()
+
+    def _load_metadata(self) -> None:
+        """Load agent metadata from resources/agents.json."""
+        try:
+            # Look in sidecar/resources/agents.json
+            # __file__ is in sidecar/agents/agent_registry.py
+            resources_dir = Path(__file__).parent.parent / "resources"
+            json_path = resources_dir / "agents.json"
+
+            if json_path.exists():
+                with open(json_path, encoding="utf-8") as f:
+                    import json
+
+                    from pydantic import TypeAdapter, ValidationError
+
+                    data = json.load(f)  # pyright: ignore[reportAny]
+
+                    try:
+                        # Validate the loaded data against the expected structure
+                        # AgentConfig is a TypedDict, so we verify that the dictionary matches it
+                        adapter = TypeAdapter(dict[str, AgentConfig])
+                        self._metadata = adapter.validate_python(data)
+                        logger.info(
+                            f"Loaded and validated metadata for {len(self._metadata)} agents."
+                        )
+                    except ValidationError as e:
+                        logger.error(f"Invalid agent metadata in {json_path}: {e}")
+                        # Fallback to empty to prevent crashes, or keep existing if any
+                        self._metadata = {}
+            else:
+                logger.warning(f"Agent metadata file not found at {json_path}")
+        except Exception as e:
+            logger.error(f"Failed to load agent metadata: {e}")
 
     def discover_agents(self) -> None:
         """Auto-discover all agents in the agents/ directory."""
@@ -50,20 +85,39 @@ class AgentRegistry:
 
     def _register_agent(self, agent_class: type[BaseAgent]) -> None:
         """Register an agent class."""
-        config = agent_class.get_config()
-        agent_id = config["agent_id"]
+        agent_id = agent_class.agent_id
+
+        if not agent_id:
+            logger.warning(f"Agent class {agent_class.__name__} has no agent_id. Skipping.")
+            return
 
         self._agents[agent_id] = agent_class
 
-        # Register command mapping if agent has a command
-        if config["command"]:
-            self._command_map[config["command"]] = agent_id
+        # Register command mapping if agent has a command in metadata
+        config = self.get_config(agent_id)
+        command = config.get("command")
+        if command:
+            self._command_map[command] = agent_id
 
     def get_agent_class(self, agent_id: str) -> type[BaseAgent]:
         """Get agent class by ID."""
         if agent_id not in self._agents:
             raise KeyError(f"Agent '{agent_id}' not found in registry")
         return self._agents[agent_id]
+
+    def get_config(self, agent_id: str) -> AgentConfig:
+        """Get configuration for a specific agent."""
+        if agent_id not in self._metadata:
+            # Fallback for agents not in metadata
+            return AgentConfig(
+                agent_id=agent_id,
+                name=agent_id.capitalize(),
+                description="",
+                command=None,
+                capabilities=[],
+                icon="User",
+            )
+        return self._metadata[agent_id]
 
     def get_agent_by_command(self, command: str) -> type[BaseAgent] | None:
         """Get agent class by command name."""
@@ -74,7 +128,7 @@ class AgentRegistry:
 
     def get_all_configs(self) -> list[AgentConfig]:
         """Get configurations for all registered agents."""
-        return [cls.get_config() for cls in self._agents.values()]
+        return [self.get_config(agent_id) for agent_id in self._agents]
 
     def get_all_agent_ids(self) -> list[str]:
         """Get all registered agents IDs."""

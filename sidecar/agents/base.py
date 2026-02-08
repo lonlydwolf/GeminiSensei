@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.types import AgentConfig
-
 if TYPE_CHECKING:
     from database.session import DBSessionManager
     from services.gemini_service import GeminiService
@@ -14,6 +12,8 @@ if TYPE_CHECKING:
 
 class BaseAgent(ABC):
     """Abstract base class for all specialized agents."""
+
+    agent_id: str = ""  # Unique identifier for the agent, matched with agents.json
 
     def __init__(
         self,
@@ -24,12 +24,6 @@ class BaseAgent(ABC):
         self.gemini_service: "GeminiService" = gemini_service
         self.db_manager: "DBSessionManager" = db_manager
         self.lesson_service: "LessonContextService" = lesson_service
-
-    @classmethod
-    @abstractmethod
-    def get_config(cls) -> AgentConfig:
-        """Return agent configuration metadata."""
-        pass
 
     @abstractmethod
     async def initialize(self) -> None:
