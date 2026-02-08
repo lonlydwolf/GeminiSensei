@@ -12,8 +12,28 @@
     "tauri:build": "bun run build-sidecar && bun run build && tauri build",
     "build-sidecar": "bash scripts/build-sidecar.sh",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "validate": "bash scripts/validate.sh",
     "sidecar:dev": "cd sidecar && uv run python main.py",
-    "sidecar:install": "cd sidecar && uv sync"
+    "sidecar:install": "cd sidecar && uv sync",
+    "docs:build": "cd sidecar && uv run python scripts/generate_openapi.py",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json}": [
+      "prettier --write"
+    ],
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ],
+    "sidecar/**/*.py": [
+      "uv run ruff check --fix",
+      "uv run ruff format"
+    ]
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.16",
@@ -27,6 +47,7 @@
     "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.0.0",
     "@tauri-apps/cli": "^2.0.0-rc.18",
     "@testing-library/jest-dom": "^6.9.1",
@@ -38,15 +59,20 @@
     "@typescript-eslint/parser": "^8.51.0",
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/browser": "^4.0.18",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.26",
+    "eslint-plugin-react-refresh": "^0.5.0",
+    "globals": "^17.3.0",
+    "husky": "^9.1.7",
     "jsdom": "^28.0.0",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.8.3",
+    "typescript-eslint": "^8.54.0",
     "vite": "^7.0.4",
     "vitest": "^4.0.18"
   }
