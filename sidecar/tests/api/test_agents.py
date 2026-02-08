@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from core.types import AgentConfig
-from main import app
+from main import SIDECAR_SECRET, app
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def client():
     from agents.manager import agent_manager
 
     anyio.run(agent_manager.initialize_all)
-    return TestClient(app)
+    return TestClient(app, headers={"X-Sidecar-Token": SIDECAR_SECRET})
 
 
 def test_get_agents_endpoint(client: TestClient):

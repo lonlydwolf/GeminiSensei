@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import (
 
 from database.models import Base
 from database.session import get_db
-from main import app
+from main import SIDECAR_SECRET, app
 from services.gemini_service import GeminiService
 
 # Use an in-memory SQLite database for testing
@@ -71,7 +71,11 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides[get_db] = override_get_db
 
     # Use ASGITransport for testing FastAPI app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"X-Sidecar-Token": SIDECAR_SECRET},
+    ) as ac:
         yield ac
 
     app.dependency_overrides.clear()
