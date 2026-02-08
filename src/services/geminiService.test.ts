@@ -15,15 +15,15 @@ describe('GeminiService', () => {
   let service: GeminiService;
 
   beforeEach(() => {
-    service = new GeminiService('fake-key');
+    service = new GeminiService();
     vi.clearAllMocks();
   });
 
   it('should omit empty optional fields from payload', async () => {
-    (api.post as any).mockResolvedValue({
+    vi.mocked(api.post).mockResolvedValue({
       roadmap_id: '123',
     });
-    (api.get as any).mockResolvedValue({ phases: [] });
+    vi.mocked(api.get).mockResolvedValue({ phases: [] });
 
     await service.generateRoadmap('learn rust', '', '');
 
@@ -33,11 +33,12 @@ describe('GeminiService', () => {
   });
 
   it('should call roadmap create and get endpoints with correct mapping', async () => {
-    (api.post as any).mockResolvedValue({
+    vi.mocked(api.post).mockResolvedValue({
       roadmap_id: '123',
     });
     // Mock backend response with 'name' and 'id'
-    (api.get as any).mockResolvedValue({
+    vi.mocked(api.get).mockResolvedValue({
+      roadmap_id: '123',
       phases: [
         {
           name: 'Phase 1',
@@ -70,7 +71,7 @@ describe('GeminiService', () => {
     const mockStream = async function* () {
       yield 'data: hello\n\n';
     };
-    (api.stream as any).mockReturnValue(mockStream());
+    vi.mocked(api.stream).mockReturnValue(mockStream());
 
     const chunks = [];
     for await (const chunk of service.streamChat('hi', [], 'teacher', 'custom-lesson-id')) {
@@ -86,7 +87,7 @@ describe('GeminiService', () => {
   });
 
   it('should sync api key to backend', async () => {
-    (api.post as any).mockResolvedValue({ success: true });
+    vi.mocked(api.post).mockResolvedValue({ success: true });
 
     await service.updateApiKey('new-key');
 

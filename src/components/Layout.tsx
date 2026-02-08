@@ -1,4 +1,3 @@
-import React from 'react';
 import Sidebar from './Sidebar';
 
 // Changed children to optional to fix strict type checking

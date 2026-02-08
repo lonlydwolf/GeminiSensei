@@ -8,6 +8,7 @@ export enum AppRoute {
 export enum AgentID {
   TEACHER = 'teacher',
   REVIEWER = 'reviewer',
+  ORCHESTRATOR = 'orchestrator',
 }
 
 export enum AgentMode {
@@ -57,4 +58,34 @@ export interface AppState {
   currentRoute: AppRoute;
   userName: string;
   roadmap: RoadmapItem[] | null;
+}
+
+export type SidecarStatus = 'searching' | 'connected' | 'error';
+
+export interface SidecarConfig {
+  port: string;
+  token: string;
+}
+
+export interface GeminiHistoryItem {
+  role: string;
+  parts: { text: string }[];
+}
+
+export interface GeminiRoadmapPayload {
+  goal: string;
+  background?: string;
+  preferences?: string;
+}
+
+export interface GeminiRoadmapResponse {
+  roadmap_id: string;
+  phases: {
+    name: string;
+    lessons: {
+      id: string;
+      name: string;
+      description: string;
+    }[];
+  }[];
 }

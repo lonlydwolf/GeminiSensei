@@ -1,16 +1,28 @@
-import React, { useState } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useState } from 'react';
+import { useApp } from '../hooks/useApp';
 import { Moon, Sun, Key, Save, CheckCircle, Shield } from 'lucide-react';
 
 export default function Settings() {
   const { apiKey, setApiKey, theme, setTheme } = useApp();
   const [localKey, setLocalKey] = useState(apiKey);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSaveKey = () => {
-    setApiKey(localKey);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSaveKey = async () => {
+    setError(null);
+    try {
+      await setApiKey(localKey);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e: unknown) {
+      console.error('Failed to save API key:', e);
+      const msg =
+        e instanceof Error &&
+        (e.message?.includes('Failed to fetch') || e.message?.includes('Load failed'))
+          ? 'Connection Error: Could not reach the sidecar. Is it running?'
+          : `Error: ${e instanceof Error ? e.message : 'Failed to save'}`;
+      setError(msg);
+    }
   };
 
   return (
@@ -43,6 +55,13 @@ export default function Settings() {
                   <Shield size={18} />
               </div>
             </div>
+
+            {error && (
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-2xl text-sm border border-red-100 dark:border-red-800">
+                {error}
+              </div>
+            )}
+
             <div className="flex justify-end">
                 <button
                 onClick={handleSaveKey}

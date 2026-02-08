@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
  * @param dependency The dependency that triggers the scroll (e.g. messages array)
  * @param offset The distance from the bottom in pixels to be considered "at bottom" (default: 100)
  */
-export function useSmartScroll<T extends HTMLElement>(dependency: any, offset: number = 100) {
+export function useSmartScroll<T extends HTMLElement>(dependency: unknown, offset: number = 100) {
   const scrollRef = useRef<T>(null);
   const isAtBottomRef = useRef(true);
 

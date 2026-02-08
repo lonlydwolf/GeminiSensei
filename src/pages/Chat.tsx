@@ -1,30 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useApp } from '../contexts/AppContext';
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useApp } from '../hooks/useApp';
 import { ChatMessage, AgentID } from '../types';
-import { useAgents } from '../hooks/useAgents';
 import { useSmartScroll } from '../hooks/useSmartScroll';
-import { getIconComponent } from '../lib/iconUtils';
 import { parseStreamChunk } from '../lib/streamParser';
-import { Send, Bot, User, Trash2, ChevronDown, BookOpen, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Trash2, ChevronDown, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 export default function Chat() {
   const { geminiService, apiKey, roadmap } = useApp();
-  const { data: agents, isLoading: loadingAgents } = useAgents();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentAgentId, setCurrentAgentId] = useState<string>(AgentID.TEACHER);
   const [selectedLessonId, setSelectedLessonId] = useState<string>('');
   const messagesContainerRef = useSmartScroll<HTMLDivElement>(messages);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Set default agent when agents load if needed
-  useEffect(() => {
-    if (agents && agents.length > 0 && !agents.find((a) => a.agent_id === currentAgentId)) {
-      setCurrentAgentId(agents[0].agent_id);
-    }
-  }, [agents]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -56,7 +45,7 @@ export default function Chat() {
     ]);
 
     try {
-      let historyForApi = messages.map((m) => ({
+      const historyForApi = messages.map((m) => ({
         role: m.role,
         parts: [{ text: m.text }],
       }));
@@ -64,7 +53,7 @@ export default function Chat() {
       const stream = geminiService.streamChat(
         input,
         historyForApi,
-        currentAgentId,
+        AgentID.ORCHESTRATOR,
         selectedLessonId || undefined
       );
 
@@ -95,14 +84,19 @@ export default function Chat() {
           );
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Chat error:', error);
+      const errorMessage =
+        error instanceof Error && error.message?.includes('Failed to fetch')
+          ? 'Connection Error: Could not reach the sidecar. Please ensure it is running.'
+          : `Error: ${error instanceof Error ? error.message : 'An unexpected error occurred'}`;
+
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
           role: 'model',
-          text: 'Error: Could not connect to Gemini. Please check your API Key.',
+          text: errorMessage,
           timestamp: Date.now(),
         },
       ]);
@@ -111,7 +105,7 @@ export default function Chat() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -136,10 +130,6 @@ export default function Chat() {
     );
   }
 
-  // Get current agent info safely
-  const activeAgent = agents?.find((a) => a.agent_id === currentAgentId);
-  const ActiveIcon = activeAgent ? getIconComponent(activeAgent.icon) : Bot;
-
   // Find current lesson title for display
   let selectedLessonTitle = 'General Chat';
   if (selectedLessonId && roadmap) {
@@ -155,46 +145,7 @@ export default function Chat() {
   return (
     <div className='flex h-full flex-col bg-gray-50 dark:bg-gray-900'>
       {/* Header */}
-      <div className='z-10 flex flex-col items-center justify-between gap-4 border-b border-gray-200 bg-white p-4 shadow-sm md:flex-row dark:border-gray-700 dark:bg-gray-800'>
-        {/* Left: Agent Picker */}
-        <div className='group relative z-20 w-full md:w-64'>
-          <label className='mb-1 ml-1 block text-xs font-bold tracking-wider text-gray-400 uppercase'>
-            Agent
-          </label>
-          <div className='relative'>
-            <select
-              value={currentAgentId}
-              onChange={(e) => {
-                setCurrentAgentId(e.target.value);
-                setMessages([]);
-              }}
-              disabled={loadingAgents}
-              className='w-full cursor-pointer appearance-none rounded-2xl bg-gray-100 py-2.5 pr-10 pl-10 font-medium text-gray-800 transition-colors outline-none hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
-            >
-              {loadingAgents ? (
-                <option>Loading agents...</option>
-              ) : (
-                agents?.map((agent) => (
-                  <option key={agent.agent_id} value={agent.agent_id}>
-                    {agent.name}
-                  </option>
-                ))
-              )}
-            </select>
-            <div className='pointer-events-none absolute top-2.5 left-3 text-gray-500'>
-              {loadingAgents ? (
-                <Loader2 className='animate-spin' size={18} />
-              ) : (
-                <ActiveIcon size={18} />
-              )}
-            </div>
-            <ChevronDown
-              className='pointer-events-none absolute top-3 right-3 text-gray-500'
-              size={16}
-            />
-          </div>
-        </div>
-
+      <div className='z-10 flex flex-col items-center justify-end gap-4 border-b border-gray-200 bg-white p-4 shadow-sm md:flex-row dark:border-gray-700 dark:bg-gray-800'>
         {/* Right: Lesson Picker */}
         <div className='relative z-10 w-full md:w-64'>
           <label className='mb-1 ml-1 block text-xs font-bold tracking-wider text-gray-400 uppercase'>
@@ -234,7 +185,7 @@ export default function Chat() {
         {messages.length === 0 && (
           <div className='flex h-full flex-col items-center justify-center text-gray-400 opacity-60'>
             <Bot size={64} className='mb-4' />
-            <p>Start a conversation with {activeAgent?.name || 'the agent'}</p>
+            <p>Start a conversation with the orchestrator</p>
             {selectedLessonId && (
               <p className='mt-2 text-sm text-blue-500'>Focus: {selectedLessonTitle}</p>
             )}
@@ -294,7 +245,7 @@ export default function Chat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Message ${activeAgent?.name || 'the agent'}... (Shift + Enter for new line)`}
+            placeholder={`Message the orchestrator... (Shift + Enter for new line)`}
             className='max-h-[150px] w-full resize-none bg-transparent py-3 pl-4 text-sm outline-none'
             rows={1}
             disabled={isLoading}

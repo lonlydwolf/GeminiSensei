@@ -1,37 +1,21 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
-import { AppRoute, AppState, RoadmapItem } from '../types';
+import { AppRoute, RoadmapItem, SidecarStatus, SidecarConfig } from '../types';
 import { GeminiService } from '../services/geminiService';
 import { api } from '../lib/api';
-
-export type SidecarStatus = 'searching' | 'connected' | 'error';
-
-interface AppContextType extends AppState {
-  // Sidecar State
-  sidecarStatus: SidecarStatus;
-  port: string;
-  sidecarError: string | null;
-
-  // Setters
-  setApiKey: (key: string) => void;
-  setTheme: (theme: 'light' | 'dark') => void;
-  setRoute: (route: AppRoute) => void;
-  setUserName: (name: string) => void;
-  setRoadmap: (roadmap: RoadmapItem[] | null) => void;
-  geminiService: GeminiService;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
+import { AppContext } from './AppContextModel';
 
 export const AppProvider = ({ children }: { children?: ReactNode }) => {
   // Sidecar Discovery State
   const [sidecarStatus, setSidecarStatus] = useState<SidecarStatus>('searching');
   const [port, setPort] = useState('');
   const [sidecarError, setSidecarError] = useState<string | null>(null);
+  const [isApiKeySet, setIsApiKeySet] = useState(false);
+  const [isApiKeyValid, setIsApiKeyValid] = useState<boolean | null>(null);
 
   // App State (from Sample)
-  const [apiKey, setApiKeyState] = useState(() => localStorage.getItem('edu_api_key') || '');
+  const [apiKey, setApiKeyState] = useState('');
   const [theme, setThemeState] = useState<'light' | 'dark'>(
     () => (localStorage.getItem('edu_theme') as 'light' | 'dark') || 'dark'
   );
@@ -49,7 +33,21 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
     }
   });
 
-  const [geminiService] = useState(() => new GeminiService(apiKey));
+  const [geminiService] = useState(() => new GeminiService());
+
+  const checkSettingsStatus = async () => {
+    try {
+      const status = await api.get<{ gemini_api_key_set: boolean; gemini_api_key_valid: boolean }>('/api/settings/status');
+      setIsApiKeySet(status.gemini_api_key_set);
+      setIsApiKeyValid(status.gemini_api_key_valid);
+      setSidecarError(null); // Clear errors if status check succeeds
+    } catch (e: unknown) {
+      console.error('Failed to check settings status:', e);
+      if (e instanceof Error && e.message?.includes('Failed to fetch')) {
+        setSidecarError('Sidecar Connection Error: Backend unreachable.');
+      }
+    }
+  };
 
   // Sidecar Discovery Logic
   useEffect(() => {
@@ -59,11 +57,14 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
     const setup = async () => {
       // 1. Listen for events
       try {
-        const stopReady = await listen<string>('sidecar-ready', (event) => {
-          api.setPort(event.payload);
-          setPort(event.payload);
+        const stopReady = await listen<SidecarConfig>('sidecar-ready', (event) => {
+          const { port, token } = event.payload;
+          api.setPort(port);
+          api.setToken(token);
+          setPort(port);
           setSidecarStatus('connected');
           setSidecarError(null);
+          checkSettingsStatus();
         });
         unlistenReady = stopReady;
 
@@ -76,17 +77,32 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
         console.error('Failed to setup Tauri listeners:', e);
       }
 
-      // 2. Poll for existing port
-      try {
-        const existingPort = await invoke<string | null>('get_sidecar_port');
-        if (existingPort) {
-          api.setPort(existingPort);
-          setPort(existingPort);
-          setSidecarStatus('connected');
+      // 2. Poll for existing config with retry
+      const pollConfig = async (retries = 5) => {
+        try {
+          const config = await invoke<SidecarConfig | null>('get_sidecar_config');
+          if (config && config.port && config.token) {
+            api.setPort(config.port);
+            api.setToken(config.token);
+            setPort(config.port);
+            setSidecarStatus('connected');
+            await checkSettingsStatus();
+            return true;
+          }
+        } catch (e) {
+          console.error('Failed to get sidecar config:', e);
         }
-      } catch (e) {
-        console.error('Failed to get sidecar port:', e);
-      }
+
+        if (retries > 0) {
+          setTimeout(() => pollConfig(retries - 1), 1000);
+        } else if (sidecarStatus === 'searching') {
+          setSidecarStatus('error');
+          setSidecarError('Sidecar initialization timed out.');
+        }
+        return false;
+      };
+
+      await pollConfig();
     };
 
     setup();
@@ -95,6 +111,7 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
       if (unlistenReady) unlistenReady();
       if (unlistenError) unlistenError();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync state to local storage and apply theme
@@ -108,11 +125,6 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
   }, [theme]);
 
   useEffect(() => {
-    localStorage.setItem('edu_api_key', apiKey);
-    geminiService.updateApiKey(apiKey);
-  }, [apiKey, geminiService]);
-
-  useEffect(() => {
     localStorage.setItem('edu_username', userName);
   }, [userName]);
 
@@ -123,7 +135,16 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
     }
   }, [roadmap]);
 
-  const setApiKey = (key: string) => setApiKeyState(key);
+  const setApiKey = async (key: string) => {
+    // Attempt to update backend first
+    await geminiService.updateApiKey(key);
+    // If successful, update local state
+    setApiKeyState(key);
+    if (key) {
+      setIsApiKeySet(true);
+      setIsApiKeyValid(true); // Since backend now validates, success means valid
+    }
+  };
   const setTheme = (t: 'light' | 'dark') => setThemeState(t);
   const setRoute = (r: AppRoute) => setCurrentRoute(r);
   const setUserName = (n: string) => setUserNameState(n);
@@ -139,6 +160,8 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
         currentRoute,
         userName,
         roadmap,
+        isApiKeySet,
+        isApiKeyValid,
         setApiKey,
         setTheme,
         setRoute,
@@ -150,10 +173,4 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
       {children}
     </AppContext.Provider>
   );
-};
-
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (!context) throw new Error('useApp must be used within an AppProvider');
-  return context;
 };

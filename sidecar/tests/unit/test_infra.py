@@ -6,22 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import override
 
 from agents.base import BaseAgent
-from core.types import AgentConfig
 from database.session import DBSessionManager
 
 
 class MockAgent(BaseAgent):
-    @classmethod
-    @override
-    def get_config(cls) -> AgentConfig:
-        return AgentConfig(
-            agent_id="mock",
-            name="Mock",
-            description="Mock agent",
-            command="mock",
-            capabilities=[],
-            icon="Bot",
-        )
+    agent_id: str = "mock"
 
     @override
     async def initialize(self) -> None:
