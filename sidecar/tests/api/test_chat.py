@@ -1,23 +1,22 @@
 from collections.abc import AsyncIterator
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
 
-from agents.code_reviewer.agent import CodeReviewerAgent
-from agents.teacher.agent import TeacherAgent
+from core.types import AgentID
 
 
 @pytest.mark.asyncio
 async def test_chat_stream_teacher(client: AsyncClient):
-    # Mock TeacherAgent.chat_stream
+    # Mock OrchestratorAgent.chat_stream
     async def mock_chat_stream(*_args: Any, **_kwargs: Any) -> AsyncIterator[str]:
         yield "Hello"
         yield " Student"
 
     with patch("agents.manager.agent_manager.get_agent") as mock_get_agent:
-        mock_agent = AsyncMock(spec=TeacherAgent)
+        mock_agent = MagicMock()
         mock_agent.chat_stream.side_effect = mock_chat_stream
         mock_get_agent.return_value = mock_agent
 
@@ -34,17 +33,18 @@ async def test_chat_stream_teacher(client: AsyncClient):
                 content += line[6:]
 
         assert content == "Hello Student"
+        # Router calls get_agent with ORCHESTRATOR by default
+        mock_get_agent.assert_called_with(AgentID.ORCHESTRATOR)
 
 
 @pytest.mark.asyncio
 async def test_chat_stream_review_command(client: AsyncClient):
-    async def mock_review_stream(*_args: Any, **_kwargs: Any) -> AsyncIterator[str]:
+    async def mock_chat_stream(*_args: Any, **_kwargs: Any) -> AsyncIterator[str]:
         yield "Critique"
 
     with patch("agents.manager.agent_manager.get_agent") as mock_get_agent:
-        # We need to simulate the instance check in the router
-        mock_agent = AsyncMock(spec=CodeReviewerAgent)
-        mock_agent.review.side_effect = mock_review_stream
+        mock_agent = MagicMock()
+        mock_agent.chat_stream.side_effect = mock_chat_stream
         mock_get_agent.return_value = mock_agent
 
         payload = {"lesson_id": "l-1", "message": "/review print(1)"}
