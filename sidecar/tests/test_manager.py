@@ -1,4 +1,3 @@
-from typing import cast
 
 import pytest
 
@@ -11,22 +10,22 @@ from core.types import AgentID
 @pytest.mark.asyncio
 async def test_agent_manager_initialization():
     # Reset manager for test
-    agent_manager._agents = {}  # pyright: ignore[reportPrivateUsage]
+    agent_manager._agent_instances = {}  # pyright: ignore[reportPrivateUsage]
     agent_manager._is_initialized = False  # pyright: ignore[reportPrivateUsage]
 
     await agent_manager.initialize_all()
 
-    assert AgentID.TEACHER in agent_manager._agents  # pyright: ignore[reportPrivateUsage]
-    assert AgentID.REVIEWER in agent_manager._agents  # pyright: ignore[reportPrivateUsage]
-    assert isinstance(agent_manager.get_agent(AgentID.TEACHER), TeacherAgent)
-    assert isinstance(agent_manager.get_agent(AgentID.REVIEWER), CodeReviewerAgent)
+    assert AgentID.TEACHER.value in agent_manager._agent_instances  # pyright: ignore[reportPrivateUsage]
+    assert AgentID.REVIEWER.value in agent_manager._agent_instances  # pyright: ignore[reportPrivateUsage]
+    assert isinstance(agent_manager.get_agent(AgentID.TEACHER.value), TeacherAgent)
+    assert isinstance(agent_manager.get_agent(AgentID.REVIEWER.value), CodeReviewerAgent)
 
 
 @pytest.mark.asyncio
 async def test_agent_manager_generic_retrieval():
     await agent_manager.initialize_all()
-    teacher = agent_manager.get_agent(AgentID.TEACHER)
+    teacher = agent_manager.get_agent(AgentID.TEACHER.value)
     assert teacher is not None
 
     with pytest.raises(RuntimeError):
-        _ = agent_manager.get_agent(cast(AgentID, cast(object, "non_existent")))
+        _ = agent_manager.get_agent("non_existent")
