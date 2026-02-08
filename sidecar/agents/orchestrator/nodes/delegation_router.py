@@ -23,7 +23,7 @@ async def route_to_agent_node(state: OrchestratorState) -> PartialOrchestratorSt
         agent_class = agent_registry.get_agent_by_command(detected_command)
 
         if agent_class:
-            agent_id = agent_class.get_config()["agent_id"]
+            agent_id = agent_class.agent_id
             logger.info(f"Routing to agent '{agent_id}' via command '/{detected_command}'")
             return {"selected_agent_id": agent_id}
         else:

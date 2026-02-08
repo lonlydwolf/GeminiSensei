@@ -25,22 +25,25 @@ async def test_orchestrator_routing_teacher():
         # Mocking AgentRegistry as well if needed, but agent_manager should be enough
         mock_get_agent.return_value = mock_teacher
 
-        # We also need to mock agent_registry.get_agent_class to return a class with get_config
+        # We also need to mock agent_registry.get_agent_class to return a class with agent_id
         with patch("agents.agent_registry.agent_registry.get_agent_class") as mock_get_class:
             mock_class = MagicMock()
-            mock_class.get_config.return_value = {
-                "agent_id": "teacher",
-                "name": "Teacher",
-                "description": "desc",
-                "capabilities": ["cap"],
-                "icon": "icon",
-            }
+            mock_class.agent_id = "teacher"
             mock_get_class.return_value = mock_class
 
-            # Test routing for generic message
-            response = await orchestrator.chat("thread1", "hello", MagicMock())
-            assert response == "I am teaching"
-            mock_get_agent.assert_called_with("teacher")
+            with patch("agents.agent_registry.agent_registry.get_config") as mock_get_config:
+                mock_get_config.return_value = {
+                    "agent_id": "teacher",
+                    "name": "Teacher",
+                    "description": "desc",
+                    "capabilities": ["cap"],
+                    "icon": "icon",
+                }
+
+                # Test routing for generic message
+                response = await orchestrator.chat("thread1", "hello", MagicMock())
+                assert response == "I am teaching"
+                mock_get_agent.assert_called_with("teacher")
 
 
 @pytest.mark.asyncio
@@ -56,22 +59,25 @@ async def test_orchestrator_routing_reviewer():
 
         with patch("agents.agent_registry.agent_registry.get_agent_by_command") as mock_get_by_cmd:
             mock_class = MagicMock()
-            mock_class.get_config.return_value = {
-                "agent_id": "reviewer",
-                "name": "Reviewer",
-                "description": "desc",
-                "capabilities": ["cap"],
-                "icon": "icon",
-            }
+            mock_class.agent_id = "reviewer"
             mock_get_by_cmd.return_value = mock_class
 
             with patch("agents.agent_registry.agent_registry.get_agent_class") as mock_get_class:
                 mock_get_class.return_value = mock_class
 
-                # Test routing for /review command
-                response = await orchestrator.chat("thread1", "/review code", MagicMock())
-                assert response == "I am reviewing"
-                mock_get_agent.assert_called_with("reviewer")
+                with patch("agents.agent_registry.agent_registry.get_config") as mock_get_config:
+                    mock_get_config.return_value = {
+                        "agent_id": "reviewer",
+                        "name": "Reviewer",
+                        "description": "desc",
+                        "capabilities": ["cap"],
+                        "icon": "icon",
+                    }
+
+                    # Test routing for /review command
+                    response = await orchestrator.chat("thread1", "/review code", MagicMock())
+                    assert response == "I am reviewing"
+                    mock_get_agent.assert_called_with("reviewer")
 
 
 @pytest.mark.asyncio
@@ -100,18 +106,21 @@ async def test_orchestrator_chat_stream():
 
         with patch("agents.agent_registry.agent_registry.get_agent_class") as mock_get_class:
             mock_class = MagicMock()
-            mock_class.get_config.return_value = {
-                "agent_id": "teacher",
-                "name": "Teacher",
-                "description": "desc",
-                "capabilities": ["cap"],
-                "icon": "icon",
-            }
+            mock_class.agent_id = "teacher"
             mock_get_class.return_value = mock_class
 
-            chunks = []
-            async for chunk in orchestrator.chat_stream("thread1", "hello", MagicMock()):
-                chunks.append(chunk)
+            with patch("agents.agent_registry.agent_registry.get_config") as mock_get_config:
+                mock_get_config.return_value = {
+                    "agent_id": "teacher",
+                    "name": "Teacher",
+                    "description": "desc",
+                    "capabilities": ["cap"],
+                    "icon": "icon",
+                }
 
-            assert chunks == ["chunk1", "chunk2"]
-            mock_get_agent.assert_called_with("teacher")
+                chunks = []
+                async for chunk in orchestrator.chat_stream("thread1", "hello", MagicMock()):
+                    chunks.append(chunk)
+
+                assert chunks == ["chunk1", "chunk2"]
+                mock_get_agent.assert_called_with("teacher")

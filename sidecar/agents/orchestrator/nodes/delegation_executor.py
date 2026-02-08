@@ -33,8 +33,7 @@ async def delegate_to_agent_node(state: OrchestratorState) -> PartialOrchestrato
         agent = agent_manager.get_agent(agent_id)
 
         # Get agent configuration
-        agent_class = agent_registry.get_agent_class(agent_id)
-        config = agent_class.get_config()
+        config = agent_registry.get_config(agent_id)
 
         # Format conversation history
         messages = state.get("messages", [])

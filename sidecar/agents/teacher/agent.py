@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.base import BaseAgent
 from core.config import settings
-from core.types import AgentConfig
 
 from .nodes import context_enrichment_node, guardrail_node, socratic_node
 from .state import AgentState
@@ -29,6 +28,7 @@ logger = logging.getLogger(__name__)
 class TeacherAgent(BaseAgent):
     """Agent that teaches through Socratic questioning."""
 
+    agent_id: str = "teacher"
     _checkpointer_cm: AsyncContextManager[AsyncSqliteSaver] | None = None
     _checkpointer: AsyncSqliteSaver | None = None
     _workflow: CompiledStateGraph[AgentState, Any, Any, Any] | None = None  # pyright: ignore[reportExplicitAny]
@@ -50,18 +50,6 @@ class TeacherAgent(BaseAgent):
         """
         super().__init__(gemini_service, db_manager, lesson_service)
         self.model_name: str = model_name
-
-    @classmethod
-    @override
-    def get_config(cls) -> AgentConfig:
-        return AgentConfig(
-            agent_id="teacher",
-            name="General Tutor",
-            description="Your AI programming teacher for explanations and guidance",
-            command="teach",
-            capabilities=["teaching", "explaining", "tutoring", "questions"],
-            icon="GraduationCap",
-        )
 
     def _create_builder(self) -> StateGraph[AgentState, Any, Any, Any]:  # pyright: ignore[reportExplicitAny]
         """Create LangGraph builder for teaching.
