@@ -4,12 +4,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from core.types import AgentID
-from main import app
+from main import SIDECAR_SECRET, app
 
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    return TestClient(app, headers={"X-Sidecar-Token": SIDECAR_SECRET})
 
 
 def test_chat_stream_routing_to_teacher(client: TestClient):

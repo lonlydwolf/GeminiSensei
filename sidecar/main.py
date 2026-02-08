@@ -1,12 +1,13 @@
 import asyncio
 import logging
+import secrets
 import socket
 import sys
 from contextlib import asynccontextmanager
-from typing import cast
+from typing import Annotated, cast
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from agents.manager import agent_manager
@@ -20,6 +21,17 @@ logging.basicConfig(
     level=settings.LOG_LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("sidecar")
+
+# Generate a single-session token for authentication
+SIDECAR_SECRET = secrets.token_urlsafe(32)
+
+
+async def verify_sidecar_token(x_sidecar_token: Annotated[str | None, Header()] = None):
+    """Verifies the sidecar token provided in headers."""
+    if x_sidecar_token != SIDECAR_SECRET:
+        logger.warning(f"Unauthorized access attempt with token: {x_sidecar_token}")
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid sidecar token")
+    return x_sidecar_token
 
 
 def validate_config():
@@ -56,22 +68,34 @@ async def lifespan(_app: FastAPI):
     logger.info("Shutdown complete.")
 
 
-app = FastAPI(title="GeminiSensei Sidecar", lifespan=lifespan)
-
-# Add CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app = FastAPI(
+    title="GeminiSensei Sidecar",
+    lifespan=lifespan,
 )
 
-app.include_router(roadmap.router)
-app.include_router(chat.router)
-app.include_router(review.router)
-app.include_router(agents.router)
-app.include_router(app_settings.router)
+# Add CORS Middleware
+origins = [
+    "*",  # Allow all origins for development
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=False,  # Credentials not needed for token auth
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Sidecar-Token"],
+)
+
+# API Router with Authentication
+api_router = APIRouter(dependencies=[Depends(verify_sidecar_token)])
+
+api_router.include_router(roadmap.router)
+api_router.include_router(chat.router)
+api_router.include_router(review.router)
+api_router.include_router(agents.router)
+api_router.include_router(app_settings.router)
+
+app.include_router(api_router)
 
 
 @app.get("/")
@@ -101,9 +125,11 @@ if __name__ == "__main__":
     # Get a free port assigned by the OS and keep the socket open
     sock, port = bind_random_port()
 
-    # Crucial: Print the port in a format Rust can easily parse
+    # Crucial: Print the port and token in a format Rust can easily parse
     # and flush stdout immediately.
     print(f"PORT:{port}")
+    _ = sys.stdout.flush()
+    print(f"TOKEN:{SIDECAR_SECRET}")
     _ = sys.stdout.flush()
 
     # Use the file descriptor of the already bound socket

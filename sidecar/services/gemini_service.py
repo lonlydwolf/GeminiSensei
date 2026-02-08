@@ -23,6 +23,15 @@ class GeminiService:
         self.model_name: str = model_name
         self.client: genai.Client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
+    def update_api_key(self, api_key: str) -> None:
+        """Update the API key and re-initialize the Gemini client.
+
+        Args:
+            api_key: New Gemini API key.
+        """
+        logger.info("Updating Gemini API key and re-initializing client")
+        self.client = genai.Client(api_key=api_key)
+
     async def generate_content(
         self,
         prompt: str | list[str],
