@@ -5,14 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.lesson_service import LessonContextService
 
-from ..state import CodeReviewerState
+from ..state import CodeReviewerState, PartialCodeReviewerState
 
 logger = logging.getLogger(__name__)
 
 
 async def context_enrichment_node(
     state: CodeReviewerState, config: RunnableConfig
-) -> dict[str, str | list[str]]:
+) -> PartialCodeReviewerState:
     """Fetch lesson details and objectives."""
     configurable = config.get("configurable", {})
     db: AsyncSession | None = configurable.get("db_session")

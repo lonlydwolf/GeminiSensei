@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import CodeReviewFinding
 from services.gemini_service import GeminiService
 
-from ..state import CodeReviewerState
+from ..state import CodeReviewerState, PartialCodeReviewerState
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class AnalysisResponse(TypedDict):
 
 async def code_analysis_node(
     state: CodeReviewerState, config: RunnableConfig
-) -> dict[str, list[AnalysisFinding]]:
+) -> PartialCodeReviewerState:
     """Analyze the code and identify issues (internally, before Socratic feedback)."""
     configurable = config.get("configurable", {})
     gemini: GeminiService | None = configurable.get("gemini_service")

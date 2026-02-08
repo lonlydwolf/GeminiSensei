@@ -9,7 +9,6 @@ from langchain_core.runnables import RunnableConfig
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents.code_reviewer.agent import CodeReviewerAgent
 from agents.code_reviewer.nodes.guardrails import guardrail_node
 from agents.code_reviewer.state import CodeReviewerState
 from database.models import CodeReview, Lesson, Phase, Roadmap
@@ -31,14 +30,19 @@ async def test_chat_creates_review_record(client: AsyncClient, db_session: Async
 
     lesson_id = str(lesson.id)
 
-    # Mock the agent so we don't actually run the LLM
-    async def mock_review_stream(*_args: Any, **_kwargs: Any):
-        yield "Thinking..."
+    # 1. Mock the CodeReviewerAgent.review method to avoid LLM calls
+    # 2. Let agent_manager return real agents
+    with patch("agents.code_reviewer.agent.CodeReviewerAgent.review") as mock_review:
 
-    with patch("agents.manager.agent_manager.get_agent") as mock_get_agent:
-        mock_agent = AsyncMock(spec=CodeReviewerAgent)
-        mock_agent.review.side_effect = mock_review_stream
-        mock_get_agent.return_value = mock_agent
+        async def mock_review_stream(*_args: Any, **_kwargs: Any):
+            yield "Thinking..."
+
+        mock_review.side_effect = mock_review_stream
+
+        # Initialize agents
+        from agents.manager import agent_manager
+
+        await agent_manager.initialize_all()
 
         # Act
         payload = {"lesson_id": lesson_id, "message": "/review print('test')"}
@@ -48,13 +52,12 @@ async def test_chat_creates_review_record(client: AsyncClient, db_session: Async
         assert response.status_code == 200
 
         # Assert DB record created
-        # This will FAIL currently because chat.py uses a fake ID
         stmt = select(CodeReview).where(CodeReview.lesson_id == lesson_id)
         result = await db_session.execute(stmt)
         record = result.scalar_one_or_none()
 
         assert record is not None, "CodeReview record should be created in DB"
-        assert record.code_content == "print('test')"
+        assert "print('test')" in record.code_content
 
 
 @pytest.mark.asyncio

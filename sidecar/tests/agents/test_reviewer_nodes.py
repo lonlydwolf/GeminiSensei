@@ -56,7 +56,7 @@ async def test_reviewer_enrichment_node(db_session: AsyncSession):
     config: RunnableConfig = {"configurable": {"db_session": db_session}}
 
     result = await context_enrichment_node(state, config)
-    assert result["lesson_name"] == "Code Style"
+    assert result.get("lesson_name") == "Code Style"
 
 
 @pytest.mark.asyncio
@@ -93,8 +93,9 @@ async def test_code_analysis_node(db_session: AsyncSession):
 
     result = await code_analysis_node(state, config)
 
-    assert len(result["findings"]) == 1
-    assert result["findings"][0]["category"] == "Style"
+    findings = result.get("findings", [])
+    assert len(findings) == 1
+    assert findings[0]["category"] == "Style"
 
 
 @pytest.mark.asyncio

@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from agents.prompts import GUARDRAIL_SYSTEM, GUARDRAIL_USER_TEMPLATE
 from services.gemini_service import GeminiService
 
-from ..state import CodeReviewerState
+from ..state import CodeReviewerState, PartialCodeReviewerState
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,9 @@ class GuardrailResponse(TypedDict):
     triggered: bool
 
 
-async def guardrail_node(state: CodeReviewerState, config: RunnableConfig) -> dict[str, bool]:
+async def guardrail_node(
+    state: CodeReviewerState, config: RunnableConfig
+) -> PartialCodeReviewerState:
     """Check if the student is bypassing the learning process."""
     configurable = config.get("configurable", {})
     gemini: GeminiService | None = configurable.get("gemini_service")
