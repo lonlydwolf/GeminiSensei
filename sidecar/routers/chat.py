@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from agents.manager import agent_manager
 from core.types import AgentID
 from database.session import get_db
-from services.review_service import ReviewService
 
 logger = logging.getLogger(__name__)
 
@@ -29,60 +28,19 @@ class ChatRequest(BaseModel):
 
 @router.post("/stream")
 async def chat_stream(request: ChatRequest, db: db_dep):
-    """Chat with the teacher agent (streaming).
+    """Chat with the AI agent (streaming).
 
-    Args:
-        request: Chat request containing lesson_id and message
-        db: Database session
-
-    Returns:
-        StreamingResponse (Server-Sent Events)
+    Uses the Orchestrator by default to route commands and messages.
     """
-    message_text = request.message.strip()
+    # Use specified agent_id or default to ORCHESTRATOR
+    target_agent_id = request.agent_id or AgentID.ORCHESTRATOR
 
-    # Check for /review command
-    if message_text.startswith("/review"):
-        # This is a bit simplified; ideally we'd extract code from the message or
-        # tell the user to use the Submit button.
-        # For now, let's route to the reviewer if code is provided in the message.
-        code_part = message_text[len("/review") :].strip()
-        if not code_part:
-
-            async def error_generator():
-                yield "data: Please provide code after /review command.\n\n"
-
-            return StreamingResponse(error_generator(), media_type="text/event-stream")
-
-        try:
-            service = ReviewService()
-
-            async def event_generator() -> AsyncGenerator[str, None]:
-                try:
-                    # Default to python if not specified, or try to detect
-                    async for token in service.submit_review(
-                        lesson_id=request.lesson_id,
-                        code=code_part,
-                        language="python",
-                        db=db,
-                    ):
-                        yield f"data: {token}\n\n"
-
-                except Exception as e:
-                    logger.error(f"Command review error: {e}")
-                    yield f"data: [ERROR] {str(e)}\n\n"
-
-            return StreamingResponse(event_generator(), media_type="text/event-stream")
-        except Exception as e:
-            logger.error(f"Review agent retrieval error: {e}")
-
-    # Use specified agent_id or default to teacher
-    target_agent = request.agent_id or AgentID.TEACHER
     try:
-        agent = agent_manager.get_agent(target_agent)
+        agent = agent_manager.get_agent(target_agent_id)
     except RuntimeError as e:
         logger.error(f"Agent manager error: {e}")
         raise HTTPException(
-            status_code=503, detail=f"Agent '{target_agent}' not initialized"
+            status_code=503, detail=f"Agent '{target_agent_id}' not initialized"
         ) from e
 
     async def event_generator() -> AsyncGenerator[str, None]:

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from typing import cast
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from agents.manager import agent_manager
@@ -84,19 +84,6 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"Message received: {data}")
-    except WebSocketDisconnect:
-        logger.info("WebSocket client disconnected")
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-
-
 def bind_random_port() -> tuple[socket.socket, int]:
     """Binds to a random port and returns the socket and port number."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -122,7 +109,7 @@ if __name__ == "__main__":
     # Use the file descriptor of the already bound socket
     config = uvicorn.Config(app, fd=sock.fileno(), log_level="info")
     server = uvicorn.Server(config)
-    
+
     try:
         asyncio.run(server.serve())
     finally:

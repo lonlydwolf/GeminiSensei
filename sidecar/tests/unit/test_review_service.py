@@ -21,7 +21,7 @@ async def test_submit_review_success():
 
     mock_agent.review.side_effect = mock_review_stream
 
-    with patch("services.review_service.agent_manager") as mock_manager:
+    with patch("agents.manager.agent_manager") as mock_manager:
         mock_manager.get_agent.return_value = mock_agent
 
         service = ReviewService()
@@ -55,7 +55,7 @@ async def test_submit_review_agent_error():
     # Arrange
     mock_db = AsyncMock(spec=AsyncSession)
 
-    with patch("services.review_service.agent_manager") as mock_manager:
+    with patch("agents.manager.agent_manager") as mock_manager:
         mock_manager.get_agent.side_effect = RuntimeError("Agent not initialized")
 
         service = ReviewService()

@@ -16,15 +16,24 @@ async def test_chat_stream_not_initialized(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_chat_stream_empty_review(client: AsyncClient):
-    payload = {"lesson_id": "l-1", "message": "/review"}
-    response = await client.post("/api/chat/stream", json=payload)
-    assert response.status_code == 200
+    with patch("agents.manager.agent_manager.get_agent") as mock_get_agent:
+        mock_agent = MagicMock()
 
-    content = ""
-    async for line in response.aiter_lines():
-        if line.startswith("data: "):
-            content += line[6:]
-    assert "Please provide code after /review command." in content
+        async def mock_chat_stream(*_: object, **_kwargs: object):
+            yield "Please provide code after /review command."
+
+        mock_agent.chat_stream.side_effect = mock_chat_stream
+        mock_get_agent.return_value = mock_agent
+
+        payload = {"lesson_id": "l-1", "message": "/review"}
+        response = await client.post("/api/chat/stream", json=payload)
+        assert response.status_code == 200
+
+        content = ""
+        async for line in response.aiter_lines():
+            if line.startswith("data: "):
+                content += line[6:]
+        assert "Please provide code after /review command." in content
 
 
 @pytest.mark.asyncio
