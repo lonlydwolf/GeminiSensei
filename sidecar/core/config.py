@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from google.genai import types
+from platformdirs import user_data_dir
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -35,9 +36,10 @@ class Settings(BaseSettings):
     ]
 
     # Database Settings
-    # Default to user home directory if not provided
-    BASE_DIR: Path = Path.home() / ".gemini-sensei"
-    DATABASE_URL: str = "sqlite+aiosqlite:///gemini_sensei.db"
+    # Use platform-specific user data directory
+    BASE_DIR: Path = Path(user_data_dir("gemini-sensei", "lonlydwolf"))
+    ENV_FILE_PATH: Path = BASE_DIR / ".env"
+    DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/gemini_sensei.db"
     CHECKPOINT_DB_PATH: str = "checkpoints.db"
 
     # Logging
@@ -46,8 +48,34 @@ class Settings(BaseSettings):
     SQLALCHEMY_ENGINE_LOG_LEVEL: str = "WARNING"
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=str(BASE_DIR / ".env"), env_file_encoding="utf-8", extra="ignore"
     )
 
+
+def migrate_legacy_env(target_path: Path):
+    """Moves legacy .env from CWD to platform-specific directory if needed."""
+    legacy_path = Path(".env")
+    if legacy_path.exists() and not target_path.exists():
+        import logging
+        import shutil
+
+        # Safe logger setup in case logging isn't configured yet
+        logger = logging.getLogger("config_migration")
+
+        try:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            _ = shutil.copy(str(legacy_path), str(target_path))
+            try:
+                # We use copy then unlink for safety, or just move
+                legacy_path.unlink()
+            except Exception as e:
+                logger.warning(f"Failed to delete legacy .env file at {legacy_path}: {e}")
+        except Exception as e:
+            logger.error(f"Failed to migrate legacy .env: {e}")
+
+
+# Initialize settings and run migration
+_base_dir = Path(user_data_dir("gemini-sensei", "lonlydwolf"))
+migrate_legacy_env(_base_dir / ".env")
 
 settings = Settings()
