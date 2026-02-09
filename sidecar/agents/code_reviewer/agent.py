@@ -42,7 +42,7 @@ class CodeReviewerAgent(BaseAgent):
         gemini_service: GeminiService,
         db_manager: DBSessionManager,
         lesson_service: LessonContextService,
-        model_name: str = "gemini-2.0-flash",
+        model_name: str = settings.GEMINI_MODEL,
     ) -> None:
         super().__init__(gemini_service, db_manager, lesson_service)
         self.model_name: str = model_name

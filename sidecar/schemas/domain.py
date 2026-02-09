@@ -117,3 +117,13 @@ class RoadmapCreateRequest(BaseModel):
 class RoadmapResponse(BaseModel):
     roadmap_id: str
     message: str
+
+
+class RoadmapListItem(BaseModel):
+    id: str
+    name: str
+    created_at: datetime
+
+
+class RoadmapListResponse(BaseModel):
+    roadmaps: list[RoadmapListItem]

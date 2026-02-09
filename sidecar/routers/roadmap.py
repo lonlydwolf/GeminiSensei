@@ -14,6 +14,8 @@ from database.session import get_db
 from schemas.domain import (
     RoadmapCreateRequest,
     RoadmapCreateResult,
+    RoadmapListItem,
+    RoadmapListResponse,
     RoadmapReadDetailed,
     RoadmapResponse,
 )
@@ -23,6 +25,22 @@ db_dep = Annotated[AsyncSession, Depends(get_db)]
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/roadmap", tags=["roadmap"])
+
+
+@router.get("/list", response_model=RoadmapListResponse)
+async def list_roadmaps(db: db_dep):
+    """List all available roadmaps."""
+    try:
+        result = await db.execute(select(Roadmap).order_by(Roadmap.created_at.desc()))
+        roadmaps = result.scalars().all()
+
+        items = [RoadmapListItem(id=r.id, name=r.name, created_at=r.created_at) for r in roadmaps]
+        return RoadmapListResponse(roadmaps=items)
+    except Exception as e:
+        logger.error(f"Error listing roadmaps: {e}")
+        raise HTTPException(
+            status_code=500, detail="Internal server error occurred while listing roadmaps"
+        )
 
 
 @router.post("/create", response_model=RoadmapResponse)
