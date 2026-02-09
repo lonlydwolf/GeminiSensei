@@ -62,6 +62,42 @@ async def update_api_key(request: ApiKeyRequest):
         raise HTTPException(status_code=500, detail=f"Failed to update API key: {str(e)}")
 
 
+@router.delete("/reset")
+async def reset_application(include_key: Annotated[bool, Query()] = False):
+    """Wipes all user data (DB, vector store) and restarts with a clean slate."""
+    try:
+        # 1. Dispose DB connection
+        await dbsessionmanager.close()
+
+        # 2. Delete database file
+        db_path = settings.BASE_DIR / "gemini_sensei.db"
+        if db_path.exists():
+            db_path.unlink()
+
+        # 3. Delete vector store directory (if it exists)
+        # Assuming vector store is in a 'vector_store' subdir in BASE_DIR
+        vector_store_path = settings.BASE_DIR / "vector_store"
+        if vector_store_path.exists():
+            shutil.rmtree(vector_store_path)
+
+        # 4. (Optional) Wipe API Key
+        if include_key:
+            env_path = settings.ENV_FILE_PATH
+            if env_path.exists():
+                env_path.unlink()
+            settings.GEMINI_API_KEY = ""
+
+        # 5. Re-initialize DB
+        # Re-post init to recreate engine/sessionmaker
+        dbsessionmanager.model_post_init(None)
+        await asyncio.to_thread(run_migrations)
+
+        return {"success": True, "message": "Application reset successfully"}
+    except Exception as e:
+        print(f"ERROR: Reset failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to reset application: {str(e)}")
+
+
 @router.get("/status")
 async def get_settings_status():
     """Checks the status of required settings."""
