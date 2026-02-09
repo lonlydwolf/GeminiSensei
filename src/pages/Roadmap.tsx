@@ -1,6 +1,6 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useApp } from '../hooks/useApp';
-import { Sparkles, Book, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Sparkles, Book, Clock, AlertCircle, CheckCircle, BarChart } from 'lucide-react';
 
 export default function Roadmap() {
   const { geminiService, apiKey, roadmap, setRoadmap } = useApp();
@@ -9,6 +9,15 @@ export default function Roadmap() {
   const [preferences, setPreferences] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generationStage, setGenerationStage] = useState(0);
+
+  useEffect(() => {
+    const savedGoal = localStorage.getItem('edu_user_goal');
+    if (savedGoal) setGoal(savedGoal);
+
+    const savedLevel = localStorage.getItem('edu_user_level');
+    if (savedLevel) setBackground(savedLevel);
+  }, []);
 
   const handleGenerate = async (e: FormEvent) => {
     e.preventDefault();
@@ -18,11 +27,23 @@ export default function Roadmap() {
     }
     setLoading(true);
     setError(null);
+    setGenerationStage(0);
     // Don't clear roadmap immediately to avoid flash if retrying
     if (!roadmap) setRoadmap(null);
 
     try {
-      const result = await geminiService.generateRoadmap(goal, background, preferences);
+      const animationPromise = new Promise<void>((resolve) => {
+        setTimeout(() => setGenerationStage(1), 1500);
+        setTimeout(() => setGenerationStage(2), 3000);
+        setTimeout(() => setGenerationStage(3), 4500);
+        setTimeout(() => resolve(), 6000);
+      });
+
+      const [result] = await Promise.all([
+        geminiService.generateRoadmap(goal, background, preferences),
+        animationPromise,
+      ]);
+
       setRoadmap(result);
     } catch (err) {
       setError('Failed to generate roadmap. Please try again later.');
@@ -112,20 +133,54 @@ export default function Roadmap() {
           )}
 
           {loading && (
-            <div className='space-y-4'>
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className='flex animate-pulse gap-4 rounded-3xl border border-gray-100 bg-white p-6 dark:border-gray-700 dark:bg-gray-800'
-                >
-                  <div className='h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700'></div>
-                  <div className='flex-1 space-y-3'>
-                    <div className='h-4 w-1/4 rounded-full bg-gray-200 dark:bg-gray-700'></div>
-                    <div className='h-4 w-3/4 rounded-full bg-gray-200 dark:bg-gray-700'></div>
-                    <div className='h-4 w-1/2 rounded-full bg-gray-200 dark:bg-gray-700'></div>
-                  </div>
+            <div className='animate-in fade-in slide-in-from-bottom-4 flex flex-col items-center justify-center py-12 duration-700'>
+              <div className='mb-8 text-center'>
+                <div className='mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'>
+                  <BarChart size={32} className='animate-pulse' />
                 </div>
-              ))}
+                <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
+                  🎯 Your sensei is preparing your training plan...
+                </h2>
+              </div>
+
+              <div className='mx-auto w-full max-w-sm space-y-4'>
+                {[
+                  'Analyzing your goals',
+                  'Researching curriculum',
+                  'Creating lesson structure',
+                  'Setting objectives',
+                ].map((text, i) => (
+                  <div key={i} className='flex items-center gap-4 transition-all duration-500'>
+                    <div className='shrink-0 transition-all duration-500'>
+                      {generationStage > i ? (
+                        <CheckCircle
+                          size={24}
+                          className='animate-in zoom-in spin-in-90 text-green-500 duration-300'
+                        />
+                      ) : generationStage === i ? (
+                        <div className='h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent' />
+                      ) : (
+                        <div className='h-6 w-6 rounded-full border-2 border-gray-200 dark:border-gray-700' />
+                      )}
+                    </div>
+                    <p
+                      className={`font-medium transition-colors duration-500 ${
+                        generationStage >= i
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-400 dark:text-gray-600'
+                      }`}
+                    >
+                      {text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className='animate-in fade-in slide-in-from-bottom-2 pt-10 text-center delay-500 duration-1000'>
+                <p className='text-sm font-medium text-gray-500 italic dark:text-gray-400'>
+                  "A journey of a thousand miles begins with a single step"
+                </p>
+              </div>
             </div>
           )}
 

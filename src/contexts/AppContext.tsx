@@ -19,7 +19,10 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
   const [theme, setThemeState] = useState<'light' | 'dark'>(
     () => (localStorage.getItem('edu_theme') as 'light' | 'dark') || 'dark'
   );
-  const [currentRoute, setCurrentRoute] = useState<AppRoute>(AppRoute.HOME);
+  const [currentRoute, setCurrentRoute] = useState<AppRoute>(() => {
+    const onboarded = localStorage.getItem('edu_onboarding_complete');
+    return onboarded === 'true' ? AppRoute.HOME : AppRoute.WELCOME;
+  });
   const [userName, setUserNameState] = useState(() => localStorage.getItem('edu_username') || '');
 
   // Roadmap persistence
@@ -37,7 +40,9 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
 
   const checkSettingsStatus = async () => {
     try {
-      const status = await api.get<{ gemini_api_key_set: boolean; gemini_api_key_valid: boolean }>('/api/settings/status');
+      const status = await api.get<{ gemini_api_key_set: boolean; gemini_api_key_valid: boolean }>(
+        '/api/settings/status'
+      );
       setIsApiKeySet(status.gemini_api_key_set);
       setIsApiKeyValid(status.gemini_api_key_valid);
       setSidecarError(null); // Clear errors if status check succeeds
@@ -148,6 +153,10 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
   const setTheme = (t: 'light' | 'dark') => setThemeState(t);
   const setRoute = (r: AppRoute) => setCurrentRoute(r);
   const setUserName = (n: string) => setUserNameState(n);
+  const completeOnboarding = () => {
+    localStorage.setItem('edu_onboarding_complete', 'true');
+    setCurrentRoute(AppRoute.HOME);
+  };
 
   return (
     <AppContext.Provider
@@ -167,6 +176,7 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
         setRoute,
         setUserName,
         setRoadmap,
+        completeOnboarding,
         geminiService,
       }}
     >

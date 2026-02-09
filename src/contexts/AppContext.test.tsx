@@ -85,13 +85,21 @@ describe('AppContext', () => {
     });
   });
 
-  it('should initialize roadmap from localStorage', () => {
+  it('should initialize roadmap from localStorage', async () => {
+    // Mock invoke to return config immediately to stop polling
+    vi.mocked(invoke).mockResolvedValue({ port: '1111', token: 'test-token' });
+
     const mockRoadmap = [{ title: 'Saved Roadmap', description: '', duration: '', lessons: [] }];
     window.localStorage.setItem('edu_roadmap', JSON.stringify(mockRoadmap));
 
     const TestRoadmapComponent = () => {
-      const { roadmap } = useApp();
-      return <span data-testid='roadmap'>{roadmap?.[0]?.title}</span>;
+      const { roadmap, sidecarStatus } = useApp();
+      return (
+        <div>
+          <span data-testid='roadmap'>{roadmap?.[0]?.title}</span>
+          <span data-testid='status'>{sidecarStatus}</span>
+        </div>
+      );
     };
 
     render(
@@ -100,15 +108,24 @@ describe('AppContext', () => {
       </AppProvider>
     );
 
+    // Wait for sidecar init to settle to avoid act warnings
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('connected'));
+
     expect(screen.getByTestId('roadmap')).toHaveTextContent('Saved Roadmap');
   });
 
   it('should save roadmap to localStorage when it changes', async () => {
+    vi.mocked(invoke).mockResolvedValue({ port: '1111', token: 'test-token' });
     const mockRoadmap = [{ title: 'New Roadmap', description: '', duration: '', lessons: [] }];
 
     const TestActionComponent = () => {
-      const { setRoadmap } = useApp();
-      return <button onClick={() => setRoadmap(mockRoadmap)}>Save</button>;
+      const { setRoadmap, sidecarStatus } = useApp();
+      return (
+        <div>
+          <button onClick={() => setRoadmap(mockRoadmap)}>Save</button>
+          <span data-testid='status'>{sidecarStatus}</span>
+        </div>
+      );
     };
 
     render(
@@ -116,6 +133,9 @@ describe('AppContext', () => {
         <TestActionComponent />
       </AppProvider>
     );
+
+    // Wait for sidecar init
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('connected'));
 
     await act(async () => {
       screen.getByText('Save').click();

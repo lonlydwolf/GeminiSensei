@@ -1,4 +1,5 @@
 export enum AppRoute {
+  WELCOME = 'WELCOME',
   HOME = 'HOME',
   ROADMAP = 'ROADMAP',
   CHAT = 'CHAT',
