@@ -1,9 +1,10 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useApp } from '../hooks/useApp';
 import { Sparkles, Book, Clock, AlertCircle, CheckCircle, BarChart } from 'lucide-react';
+import { ApiError } from '../lib/api';
 
 export default function Roadmap() {
-  const { geminiService, apiKey, roadmap, setRoadmap } = useApp();
+  const { geminiService, roadmap, setRoadmap, isApiKeySet } = useApp();
   const [goal, setGoal] = useState('');
   const [background, setBackground] = useState('');
   const [preferences, setPreferences] = useState('');
@@ -21,7 +22,7 @@ export default function Roadmap() {
 
   const handleGenerate = async (e: FormEvent) => {
     e.preventDefault();
-    if (!apiKey) {
+    if (!isApiKeySet) {
       setError('Please set your API Key in Settings or Home first.');
       return;
     }
@@ -44,10 +45,15 @@ export default function Roadmap() {
         animationPromise,
       ]);
 
-      setRoadmap(result);
+      setRoadmap(result.roadmap);
+      localStorage.setItem('edu_active_roadmap_id', result.id);
     } catch (err) {
-      setError('Failed to generate roadmap. Please try again later.');
       console.error(err);
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError('Failed to generate roadmap. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }

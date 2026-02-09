@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-synthesis: none;

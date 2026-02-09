@@ -29,6 +29,7 @@ describe('Chat Component Simplification', () => {
         streamChat: mockStreamChat,
       },
       apiKey: 'test-key',
+      isApiKeySet: true,
       roadmap: null,
     } as unknown as AppContextType);
 
@@ -57,7 +58,7 @@ describe('Chat Component Simplification', () => {
 
     const { container } = render(<Chat />);
 
-    const input = screen.getByPlaceholderText(/Message/i);
+    const input = screen.getByPlaceholderText(/Ask your sensei/i);
     fireEvent.change(input, { target: { value: 'Hello Orchestrator' } });
 
     // The send button is the blue one with the icon

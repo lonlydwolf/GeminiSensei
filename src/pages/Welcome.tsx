@@ -9,7 +9,9 @@ import {
   Target,
   BarChart,
   CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
+import { ApiError } from '../lib/api';
 
 export default function Welcome() {
   const { setApiKey, setUserName, completeOnboarding } = useApp();
@@ -19,11 +21,28 @@ export default function Welcome() {
   const [goal, setGoal] = useState('');
   const [step, setStep] = useState(1);
   const [showLearnMore, setShowLearnMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleApiKeySubmit = () => {
+  const handleApiKeySubmit = async () => {
+    setError(null);
     if (tempKey.trim()) {
-      setApiKey(tempKey.trim());
-      setStep(3);
+      setLoading(true);
+      try {
+        await setApiKey(tempKey.trim());
+        setStep(3);
+      } catch (e: unknown) {
+        console.error('API Key Validation Failed:', e);
+        if (e instanceof ApiError) {
+          setError(e.message);
+        } else if (e instanceof Error) {
+          setError(e.message);
+        } else {
+          setError('Failed to validate API key');
+        }
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -166,6 +185,14 @@ export default function Welcome() {
                     autoFocus
                   />
                 </div>
+
+                {error && (
+                  <div className='animate-in fade-in slide-in-from-top-1 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400'>
+                    <AlertCircle size={16} className='mt-0.5 shrink-0' />
+                    <span>{error}</span>
+                  </div>
+                )}
+
                 <div className='text-center'>
                   <a
                     href='https://aistudio.google.com/app/apikey'
@@ -187,10 +214,10 @@ export default function Welcome() {
                 </button>
                 <button
                   onClick={handleApiKeySubmit}
-                  disabled={!tempKey.trim()}
+                  disabled={!tempKey.trim() || loading}
                   className='flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none'
                 >
-                  Continue
+                  {loading ? 'Verifying...' : 'Continue'}
                 </button>
               </div>
             </div>
@@ -221,7 +248,7 @@ export default function Welcome() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder='Your Name'
-                      className='w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pr-4 pl-11 text-sm font-medium text-gray-900 transition-all outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-blue-500'
+                      className='w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pr-4 pl-11 text-sm font-medium text-gray-900 transition-all outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-blue-500 dark:focus:bg-gray-900'
                       autoFocus
                     />
                   </div>
@@ -264,7 +291,7 @@ export default function Welcome() {
                       value={goal}
                       onChange={(e) => setGoal(e.target.value)}
                       placeholder='e.g. Python, React, System Design...'
-                      className='w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pr-4 pl-11 text-sm font-medium text-gray-900 transition-all outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-blue-500'
+                      className='w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pr-4 pl-11 text-sm font-medium text-gray-900 transition-all outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-blue-500 dark:focus:bg-gray-900'
                     />
                   </div>
                 </div>
