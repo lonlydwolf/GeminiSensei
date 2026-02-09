@@ -64,6 +64,8 @@ jobs:
           elif [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
             bun run build-sidecar x86_64-pc-windows-msvc
           fi
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
       - uses: tauri-apps/tauri-action@v0
         env:
