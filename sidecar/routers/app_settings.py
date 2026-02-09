@@ -1,10 +1,15 @@
-import google.genai as genai
-from dotenv import set_key
-from fastapi import APIRouter, HTTPException
+import asyncio
+import shutil
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from core.config import settings
-from services.gemini_service import gemini_service
+from core.exceptions import QuotaExceededError
+from database.migrations import run_migrations
+from database.session import dbsessionmanager
+from services.key_manager import key_manager
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -20,51 +25,19 @@ async def update_api_key(request: ApiKeyRequest):
     if not request.api_key.strip():
         raise HTTPException(status_code=400, detail="API key cannot be empty")
 
-    # NEW: Validate API key format
-    if not request.api_key.startswith("AIza"):
+    if not key_manager.validate_format(request.api_key):
         raise HTTPException(
             status_code=400,
-            detail="Invalid API key format. Gemini API keys should start with 'AIza'",
-        )
-
-    if len(request.api_key) != 39:
-        raise HTTPException(
-            status_code=400, detail="Invalid API key length. Expected 39 characters"
+            detail="Invalid API key format. Expected 'AIza...' and 39 chars.",
         )
 
     try:
-        # NEW: Test the API key before saving
-        test_client = genai.Client(api_key=request.api_key)
-        try:
-            # Make a minimal API call to verify the key works
-            _ = await test_client.aio.models.generate_content(  # pyright: ignore[reportUnknownMemberType]
-                model="gemini-2.0-flash", contents="test", config={"max_output_tokens": 1}
-            )
-            print("DEBUG: API key validation successful")
-        except Exception as e:
-            print(f"DEBUG: API key validation failed: {e}")
-            raise HTTPException(
-                status_code=400, detail=f"API key is invalid or not authorized: {str(e)}"
-            )
+        # Test the API key before saving
+        await key_manager.verify_key(request.api_key)
+        print("DEBUG: API key validation successful")
 
-        # Determine .env path from centralized settings
-        env_path = settings.ENV_FILE_PATH
-
-        # Ensure directory exists
-        env_path.parent.mkdir(parents=True, exist_ok=True)
-        if not env_path.exists():
-            env_path.touch()
-
-        # Update .env
-        print(f"DEBUG: Updating .env at {env_path}")
-        _ = set_key(str(env_path), "GEMINI_API_KEY", request.api_key)
-
-        # Update in-memory settings
-        settings.GEMINI_API_KEY = request.api_key
-
-        # Update running service
-        print("DEBUG: Updating Gemini Service instance")
-        gemini_service.update_api_key(request.api_key)
+        # Save key
+        env_path = key_manager.save_key(request.api_key)
 
         print("DEBUG: API Key update successful")
         return {
@@ -76,6 +49,12 @@ async def update_api_key(request: ApiKeyRequest):
                 "validated": True,
             },
         }
+    except QuotaExceededError:
+        # Let the global exception handler handle 429
+        raise
+    except ValueError as e:
+        print(f"DEBUG: API key validation failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:

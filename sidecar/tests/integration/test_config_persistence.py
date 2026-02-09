@@ -19,8 +19,8 @@ async def test_api_key_persistence_path(client: AsyncClient):
         from unittest.mock import AsyncMock, MagicMock
 
         with (
-            patch("routers.app_settings.set_key") as mock_set_key,
-            patch("routers.app_settings.genai.Client") as MockGenaiClient,
+            patch("services.key_manager.set_key") as mock_set_key,
+            patch("services.key_manager.genai.Client") as MockGenaiClient,
         ):
             # Configure the mock to simulate a successful API call
             mock_client_instance = MockGenaiClient.return_value
@@ -36,7 +36,6 @@ async def test_api_key_persistence_path(client: AsyncClient):
 
             # The first argument to set_key is the path
             # We want it to be settings.BASE_DIR / ".env"
-            # Currently it is Path(".env")
             called_path = Path(mock_set_key.call_args[0][0]).absolute()
             expected_path = (settings.BASE_DIR / ".env").absolute()
 
