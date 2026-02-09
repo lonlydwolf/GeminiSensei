@@ -21,7 +21,7 @@ export class GeminiService {
     goal: string,
     background: string,
     preferences: string
-  ): Promise<RoadmapItem[]> {
+  ): Promise<{ roadmap: RoadmapItem[]; id: string }> {
     try {
       // 1. Create roadmap via sidecar
       const payload: GeminiRoadmapPayload = { goal };
@@ -36,8 +36,9 @@ export class GeminiService {
       const detailedRoadmap = await api.get<GeminiRoadmapResponse>(`/api/roadmap/${roadmapId}`);
 
       // 3. Map backend schema to frontend RoadmapItem[]
+      let roadmap: RoadmapItem[] = [];
       if (detailedRoadmap.phases && Array.isArray(detailedRoadmap.phases)) {
-        return detailedRoadmap.phases.map((phase) => ({
+        roadmap = detailedRoadmap.phases.map((phase) => ({
           title: phase.name,
           description: '',
           duration: '',
@@ -52,7 +53,7 @@ export class GeminiService {
         }));
       }
 
-      return [];
+      return { roadmap, id: roadmapId };
     } catch (error) {
       console.error('Gemini Roadmap Error:', error);
       throw error;

@@ -135,8 +135,11 @@ export const AppProvider = ({ children }: { children?: ReactNode }) => {
 
   // Persist roadmap
   useEffect(() => {
-    if (roadmap) {
+    if (roadmap && roadmap.length > 0) {
       localStorage.setItem('edu_roadmap', JSON.stringify(roadmap));
+    } else if (roadmap === null) {
+      // Only clear if explicitly null
+      localStorage.removeItem('edu_roadmap');
     }
   }, [roadmap]);
 

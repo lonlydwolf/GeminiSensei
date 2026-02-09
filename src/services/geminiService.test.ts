@@ -57,14 +57,17 @@ describe('GeminiService', () => {
     expect(api.get).toHaveBeenCalledWith('/api/roadmap/123');
 
     // Frontend expects nested 'lessons' with 'id'
-    expect(result).toEqual([
-      {
-        title: 'Phase 1',
-        description: '',
-        duration: '',
-        lessons: [{ id: 'uuid-123', title: 'Lesson 1', description: 'Desc 1', status: 'pending' }],
-      },
-    ]);
+    expect(result).toEqual({
+      roadmap: [
+        {
+          title: 'Phase 1',
+          description: '',
+          duration: '',
+          lessons: [{ id: 'uuid-123', title: 'Lesson 1', description: 'Desc 1', status: 'pending' }],
+        },
+      ],
+      id: '123'
+    });
   });
 
   it('should call chat stream endpoint and handle SSE format', async () => {
