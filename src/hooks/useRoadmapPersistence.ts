@@ -84,5 +84,5 @@ export function useRoadmapPersistence() {
     };
 
     syncRoadmap();
-  }, [setRoadmap, sidecarStatus]);
+  }, [setRoadmap, sidecarStatus, roadmap]);
 }
