@@ -16,6 +16,7 @@ export interface AppContextType extends AppState {
   setRoute: (route: AppRoute) => void;
   setUserName: (name: string) => void;
   setRoadmap: (roadmap: RoadmapItem[] | null) => void;
+  completeOnboarding: () => void;
   geminiService: GeminiService;
 }
 
