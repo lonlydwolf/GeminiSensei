@@ -4,9 +4,10 @@ import logging
 from collections.abc import AsyncIterator
 
 import google.genai as genai
-from google.genai import types
+from google.genai import errors, types
 
 from core.config import settings
+from core.exceptions import ExternalAPIError, QuotaExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 class GeminiService:
     """Service for interacting with Gemini API using the google-genai SDK."""
 
-    def __init__(self, model_name: str = "gemini-2.0-flash") -> None:
+    def __init__(self, model_name: str = settings.GEMINI_MODEL) -> None:
         """Initialize Gemini service.
 
         Args:
@@ -72,9 +73,27 @@ class GeminiService:
             if text is None:
                 return ""
             return text
+        except errors.ClientError as e:
+            logger.error(f"Gemini API Client Error: {e}")
+            if e.code == 429:
+                raise QuotaExceededError(
+                    message="Gemini API Quota Exceeded", details={"original_error": str(e)}
+                )
+            raise ExternalAPIError(
+                message=f"Gemini API Error: {e.message}", details={"original_error": str(e)}
+            )
+        except errors.ServerError as e:
+            logger.error(f"Gemini API Server Error: {e}")
+            raise ExternalAPIError(
+                message="Gemini API Server Error. Please try again later.",
+                details={"original_error": str(e)},
+            )
         except Exception as e:
-            logger.error(f"Gemini API error: {e}")
-            raise
+            logger.error(f"Gemini API unexpected error: {e}")
+            raise ExternalAPIError(
+                message="An unexpected error occurred while contacting Gemini",
+                details={"original_error": str(e)},
+            )
 
     async def generate_content_stream(
         self,
@@ -111,9 +130,27 @@ class GeminiService:
                 chunk_text = chunk.text
                 if chunk_text:
                     yield chunk_text
+        except errors.ClientError as e:
+            logger.error(f"Gemini API Client Error: {e}")
+            if e.code == 429:
+                raise QuotaExceededError(
+                    message="Gemini API Quota Exceeded", details={"original_error": str(e)}
+                )
+            raise ExternalAPIError(
+                message=f"Gemini API Error: {e.message}", details={"original_error": str(e)}
+            )
+        except errors.ServerError as e:
+            logger.error(f"Gemini API Server Error: {e}")
+            raise ExternalAPIError(
+                message="Gemini API Server Error. Please try again later.",
+                details={"original_error": str(e)},
+            )
         except Exception as e:
             logger.error(f"Gemini API streaming error: {e}")
-            raise
+            raise ExternalAPIError(
+                message="An unexpected error occurred while contacting Gemini",
+                details={"original_error": str(e)},
+            )
 
 
 # Instance

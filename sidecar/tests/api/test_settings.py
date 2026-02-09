@@ -18,9 +18,9 @@ async def test_update_api_key(client: AsyncClient):
         from unittest.mock import AsyncMock, MagicMock
 
         with (
-            patch("routers.app_settings.set_key") as mock_set_key,
-            patch("routers.app_settings.gemini_service.update_api_key") as mock_update_key,
-            patch("routers.app_settings.genai.Client") as MockGenaiClient,
+            patch("services.key_manager.set_key") as mock_set_key,
+            patch("services.key_manager.gemini_service.update_api_key") as mock_update_key,
+            patch("services.key_manager.genai.Client") as MockGenaiClient,
         ):
             # Configure the mock to simulate a successful API call
             mock_client_instance = MockGenaiClient.return_value

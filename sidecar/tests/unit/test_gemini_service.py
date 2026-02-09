@@ -55,10 +55,13 @@ async def test_generate_content_stream_success():
 
 @pytest.mark.asyncio
 async def test_generate_content_error():
+    from core.exceptions import ExternalAPIError
+
     with patch("google.genai.Client") as MockClient:
         mock_client = MockClient.return_value
         mock_client.aio.models.generate_content.side_effect = Exception("API Error")
 
         service = GeminiService()
-        with pytest.raises(Exception, match="API Error"):
+
+        with pytest.raises(ExternalAPIError, match="unexpected error occurred"):
             _ = await service.generate_content("Hello")
