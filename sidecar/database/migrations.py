@@ -10,6 +10,13 @@ logger = logging.getLogger(__name__)
 def run_migrations() -> None:
     """Run database migrations programmatically."""
     try:
+        from database.session import get_db_url
+
+        target_url = get_db_url()
+        # Escape '%' for Alembic's ConfigParser interpolation
+        alembic_url = target_url.replace("%", "%%")
+        logger.info(f"Using database for migrations: {target_url}")
+
         # Resolve the absolute path to alembic.ini
         # Assuming this file is in sidecar/database/migrations.py
         # alembic.ini is in sidecar/alembic.ini
@@ -22,6 +29,7 @@ def run_migrations() -> None:
 
         # Initialize Alembic configuration
         alembic_cfg = Config(str(ini_path))
+        alembic_cfg.set_main_option("sqlalchemy.url", alembic_url)
 
         # Override script_location to be absolute to avoid path issues
         migrations_path = base_path / "migrations"

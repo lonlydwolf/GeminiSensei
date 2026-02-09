@@ -16,7 +16,8 @@ from database.session import get_db_url
 config = context.config
 
 # Set sqlalchemy.url from settings dynamically
-config.set_main_option("sqlalchemy.url", get_db_url())
+# Escape '%' for Alembic's ConfigParser interpolation
+config.set_main_option("sqlalchemy.url", get_db_url().replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

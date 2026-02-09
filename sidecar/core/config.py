@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     # API Settings
     GEMINI_API_KEY: str = Field(default="")
+    GEMINI_MODEL: str = Field(default="gemini-2.0-flash-lite")
 
     # Safety Settings
     SAFETY_SETTINGS: list[types.SafetySetting] = [

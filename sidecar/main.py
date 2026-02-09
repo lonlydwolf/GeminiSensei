@@ -7,11 +7,14 @@ from contextlib import asynccontextmanager
 from typing import Annotated, cast
 
 import uvicorn
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from agents.manager import agent_manager
 from core.config import settings
+from core.exceptions import BaseAppException, ExternalAPIError, QuotaExceededError
 from database.migrations import run_migrations
 from database.session import dbsessionmanager
 from routers import agents, app_settings, chat, review, roadmap
@@ -59,6 +62,19 @@ async def lifespan(_app: FastAPI):
     logger.info("Initializing Agent Manager...")
     await agent_manager.initialize_all()
 
+    # Log initial stats
+    try:
+        from sqlalchemy import func, select
+
+        from database.models import Roadmap
+
+        async with dbsessionmanager.session() as db:
+            result = await db.execute(select(func.count(Roadmap.id)))
+            count = result.scalar()
+            logger.info(f"Database connected. Found {count} roadmap(s).")
+    except Exception as e:
+        logger.warning(f"Could not fetch roadmap count: {e}")
+
     logger.info("Database and agents initialized. Sidecar is ready.")
     yield
     # Clean up on shutdown
@@ -73,6 +89,46 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "code": "VALIDATION_ERROR",
+            "message": "Invalid request data",
+            "details": {"errors": exc.errors()},
+        },
+    )
+
+
+@app.exception_handler(BaseAppException)
+async def app_exception_handler(_request: Request, exc: BaseAppException):
+    status_code = 500
+    if isinstance(exc, QuotaExceededError):
+        status_code = 429
+    elif isinstance(exc, ExternalAPIError):
+        status_code = 502
+
+    return JSONResponse(
+        status_code=status_code,
+        content={"code": exc.code, "message": exc.message, "details": exc.details},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(_request: Request, exc: Exception):
+    logger.exception("Unhandled exception occurred")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "code": "INTERNAL_SERVER_ERROR",
+            "message": "An unexpected error occurred.",
+            "details": {"error": str(exc)},
+        },
+    )
+
+
 # Add CORS Middleware
 origins = [
     "*",  # Allow all origins for development
@@ -82,7 +138,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=False,  # Credentials not needed for token auth
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["Content-Type", "Authorization", "X-Sidecar-Token"],
 )
 
