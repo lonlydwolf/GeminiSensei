@@ -3,11 +3,11 @@ import { useApp } from '../hooks/useApp';
 import { ChatMessage, AgentID } from '../types';
 import { useSmartScroll } from '../hooks/useSmartScroll';
 import { parseStreamChunk } from '../lib/streamParser';
-import { Send, Bot, User, Trash2, ChevronDown, BookOpen } from 'lucide-react';
+import { Send, Bot, Trash2, ChevronDown, BookOpen, Target, Code } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 export default function Chat() {
-  const { geminiService, apiKey, roadmap } = useApp();
+  const { geminiService, roadmap, isApiKeySet } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -23,18 +23,19 @@ export default function Chat() {
     }
   }, [input]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !apiKey || isLoading) return;
+  const handleSend = async (textOverride?: string) => {
+    const textToSend = textOverride || input;
+    if (!textToSend.trim() || !isApiKeySet || isLoading) return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      text: input,
+      text: textToSend,
       timestamp: Date.now(),
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    setInput('');
+    if (!textOverride) setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setIsLoading(true);
 
@@ -51,7 +52,7 @@ export default function Chat() {
       }));
 
       const stream = geminiService.streamChat(
-        input,
+        textToSend,
         historyForApi,
         AgentID.ORCHESTRATOR,
         selectedLessonId || undefined
@@ -61,7 +62,6 @@ export default function Chat() {
         const parsed = parseStreamChunk(chunk);
 
         if (parsed.error) {
-          // If we get an error chunk, replace the model message with the error
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === modelMsgId
@@ -72,7 +72,6 @@ export default function Chat() {
                 : msg
             )
           );
-          // Stop processing the stream if it's a critical error
           break;
         }
 
@@ -116,7 +115,7 @@ export default function Chat() {
     setMessages([]);
   };
 
-  if (!apiKey) {
+  if (!isApiKeySet) {
     return (
       <div className='flex h-full flex-col items-center justify-center p-6 text-center'>
         <div className='mb-4 rounded-full bg-red-50 p-4 dark:bg-red-900/20'>
@@ -130,33 +129,35 @@ export default function Chat() {
     );
   }
 
-  // Find current lesson title for display
-  let selectedLessonTitle = 'General Chat';
-  if (selectedLessonId && roadmap) {
-    for (const phase of roadmap) {
-      const lesson = phase.lessons.find((l) => l.id === selectedLessonId);
-      if (lesson) {
-        selectedLessonTitle = lesson.title;
-        break;
-      }
-    }
-  }
+  const suggestionChips = [
+    { label: 'Explain the core concept', icon: <BookOpen size={14} /> },
+    { label: 'Give me a quiz', icon: <Target size={14} /> },
+    { label: 'Show a code example', icon: <Code size={14} /> },
+  ];
 
   return (
-    <div className='flex h-full flex-col bg-gray-50 dark:bg-gray-900'>
+    <div className='flex h-full flex-col bg-white dark:bg-gray-950'>
       {/* Header */}
-      <div className='z-10 flex flex-col items-center justify-end gap-4 border-b border-gray-200 bg-white p-4 shadow-sm md:flex-row dark:border-gray-700 dark:bg-gray-800'>
-        {/* Right: Lesson Picker */}
-        <div className='relative z-10 w-full md:w-64'>
-          <label className='mb-1 ml-1 block text-xs font-bold tracking-wider text-gray-400 uppercase'>
-            Focus Lesson
-          </label>
-          <div className='relative'>
+      <div className='z-10 flex items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-3 backdrop-blur-md dark:border-gray-800/50 dark:bg-gray-950/80'>
+        <div className='flex items-center gap-4'>
+          <div className='hidden h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 md:flex dark:bg-blue-900/20 dark:text-blue-400'>
+            <Bot size={24} />
+          </div>
+          <div className='flex flex-col'>
+            <span className='text-sm font-bold dark:text-white'>Sensei Orchestrator</span>
+            <span className='text-[10px] font-bold tracking-widest text-blue-500 uppercase'>
+              Online
+            </span>
+          </div>
+        </div>
+
+        <div className='flex items-center gap-3'>
+          <div className='relative hidden sm:block'>
             <select
               value={selectedLessonId}
               onChange={(e) => setSelectedLessonId(e.target.value)}
               disabled={!roadmap || roadmap.length === 0}
-              className='w-full cursor-pointer appearance-none rounded-2xl border border-gray-200 bg-white py-2.5 pr-10 pl-10 font-medium text-gray-800 transition-colors outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'
+              className='cursor-pointer appearance-none rounded-xl border border-gray-200 bg-gray-50 py-2 pr-10 pl-9 text-xs font-semibold text-gray-700 transition-all outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300'
             >
               <option value=''>General Chat</option>
               {roadmap?.map((phase, i) => (
@@ -169,109 +170,153 @@ export default function Chat() {
                 </optgroup>
               ))}
             </select>
-            <div className='pointer-events-none absolute top-2.5 left-3 text-gray-500'>
-              <BookOpen size={18} />
-            </div>
+            <BookOpen className='pointer-events-none absolute top-2.5 left-3 text-gray-400' size={14} />
             <ChevronDown
-              className='pointer-events-none absolute top-3 right-3 text-gray-500'
-              size={16}
+              className='pointer-events-none absolute top-3 right-3 text-gray-400'
+              size={12}
             />
           </div>
+
+          <button
+            onClick={clearChat}
+            className='flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 text-gray-400 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500 dark:border-gray-800 dark:hover:border-red-900/30 dark:hover:bg-red-900/20'
+            title='Clear conversation'
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div ref={messagesContainerRef} className='flex-1 space-y-6 overflow-y-auto p-4'>
+      <div
+        ref={messagesContainerRef}
+        className='flex-1 space-y-8 overflow-y-auto px-6 py-10'
+        style={{ scrollBehavior: 'smooth' }}
+      >
         {messages.length === 0 && (
-          <div className='flex h-full flex-col items-center justify-center text-gray-400 opacity-60'>
-            <Bot size={64} className='mb-4' />
-            <p>Start a conversation with the orchestrator</p>
-            {selectedLessonId && (
-              <p className='mt-2 text-sm text-blue-500'>Focus: {selectedLessonTitle}</p>
-            )}
+          <div className='animate-in fade-in zoom-in-95 flex h-full flex-col items-center justify-center text-center duration-700'>
+            <div className='mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'>
+              <Bot size={40} />
+            </div>
+            <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
+              How can I help you today?
+            </h2>
+            <p className='mt-2 max-w-sm text-gray-500 dark:text-gray-400'>
+              I can explain complex topics, review your code, or quiz you on your current lesson.
+            </p>
+
+            <div className='mt-10 flex flex-wrap justify-center gap-3'>
+              {suggestionChips.map((chip, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSend(chip.label)}
+                  className='flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-all hover:-translate-y-0.5 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:bg-blue-900/20 dark:hover:text-blue-400'
+                >
+                  <span className='text-blue-500'>{chip.icon}</span>
+                  {chip.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
+
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex animate-in fade-in slide-in-from-bottom-2 gap-4 duration-300 ${
+              msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+            }`}
           >
             {msg.role === 'model' && (
-              <div className='mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'>
+              <div className='mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'>
                 <Bot size={18} />
               </div>
             )}
             <div
-              className={`max-w-[85%] rounded-3xl px-6 py-4 shadow-sm ${
+              className={`relative max-w-[85%] px-6 py-4 shadow-sm md:max-w-[75%] ${
                 msg.role === 'user'
-                  ? 'rounded-br-md bg-blue-600 text-white'
-                  : 'rounded-bl-md border border-gray-200 bg-white text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200'
+                  ? 'rounded-3xl rounded-tr-none bg-blue-600 text-white shadow-blue-500/10'
+                  : 'rounded-3xl rounded-tl-none border border-gray-100 bg-gray-50 text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200'
               }`}
             >
               {msg.role === 'model' ? (
-                <div className='markdown-body overflow-x-auto text-sm leading-relaxed'>
+                <div className='markdown-body prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed'>
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
               ) : (
                 <p className='text-sm whitespace-pre-wrap'>{msg.text}</p>
               )}
+              <span
+                className={`absolute top-full mt-1.5 text-[10px] font-medium opacity-40 ${
+                  msg.role === 'user' ? 'right-2' : 'left-2'
+                }`}
+              >
+                {new Date(msg.timestamp).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
             </div>
-            {msg.role === 'user' && (
-              <div className='mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'>
-                <User size={18} />
-              </div>
-            )}
           </div>
         ))}
+
         {isLoading && (
-          <div className='flex gap-4'>
-            <div className='mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'>
+          <div className='flex animate-in fade-in gap-4 duration-300'>
+            <div className='mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'>
               <Bot size={18} />
             </div>
-            <div className='flex items-center gap-2 rounded-3xl rounded-bl-md border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800'>
-              <span className='h-2 w-2 animate-bounce rounded-full bg-gray-400'></span>
-              <span className='h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-75'></span>
-              <span className='h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-150'></span>
+            <div className='flex items-center gap-1.5 rounded-2xl rounded-tl-none border border-gray-100 bg-gray-50 px-5 py-4 dark:border-gray-800 dark:bg-gray-900'>
+              <div
+                className='h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400'
+                style={{ animationDelay: '0ms' }}
+              ></div>
+              <div
+                className='h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400'
+                style={{ animationDelay: '150ms' }}
+              ></div>
+              <div
+                className='h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400'
+                style={{ animationDelay: '300ms' }}
+              ></div>
             </div>
           </div>
         )}
       </div>
 
       {/* Input */}
-      <div className='border-t border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800'>
-        <div className='relative mx-auto flex max-w-4xl items-end gap-2 rounded-3xl border border-gray-200 bg-gray-50 p-2 shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-700 dark:bg-gray-900'>
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`Message the orchestrator... (Shift + Enter for new line)`}
-            className='max-h-[150px] w-full resize-none bg-transparent py-3 pl-4 text-sm outline-none'
-            rows={1}
-            disabled={isLoading}
-          />
-          <div className='flex flex-col gap-2 pr-1 pb-1'>
-            <button
-              onClick={clearChat}
-              className='rounded-full p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20'
-              title='Clear Chat'
-            >
-              <Trash2 size={18} />
-            </button>
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className='rounded-full bg-blue-600 p-2 text-white shadow-md transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600'
-            >
-              <Send size={18} className={isLoading ? 'opacity-0' : ''} />
-              {isLoading && (
-                <span className='absolute inset-0 flex items-center justify-center'>
-                  <span className='h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent'></span>
-                </span>
-              )}
-            </button>
+      <div className='border-t border-gray-100 bg-white p-6 dark:border-gray-900 dark:bg-gray-950'>
+        <div className='mx-auto flex max-w-4xl items-end gap-3'>
+          <div className='relative flex flex-1 items-end rounded-2xl border border-gray-200 bg-gray-50 transition-all focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/5 dark:border-gray-800 dark:bg-gray-900 dark:focus-within:border-blue-500'>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`Ask your sensei anything...`}
+              className='max-h-[150px] w-full resize-none bg-transparent py-4 pr-4 pl-5 text-sm leading-relaxed outline-none dark:text-white'
+              rows={1}
+              disabled={isLoading}
+            />
           </div>
+
+          <button
+            onClick={() => handleSend()}
+            disabled={!input.trim() || isLoading}
+            className='flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-blue-500/40 active:translate-y-0 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none dark:bg-blue-500 dark:hover:bg-blue-400'
+          >
+            {isLoading ? (
+              <span className='h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent' />
+            ) : (
+              <Send size={20} className='-mr-0.5 mt-0.5' />
+            )}
+          </button>
         </div>
+        <p className='mt-3 text-center text-[10px] font-medium text-gray-400 dark:text-gray-600'>
+          Press <kbd className='rounded border border-gray-200 px-1 dark:border-gray-800'>Enter</kbd>{' '}
+          to send, <kbd className='rounded border border-gray-200 px-1 dark:border-gray-800'>Shift</kbd> +{' '}
+          <kbd className='rounded border border-gray-200 px-1 dark:border-gray-800'>Enter</kbd> for a
+          new line.
+        </p>
       </div>
     </div>
   );
