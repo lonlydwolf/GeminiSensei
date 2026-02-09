@@ -5,6 +5,56 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/roadmap/list": {
+      "get": {
+        "tags": [
+          "roadmap"
+        ],
+        "summary": "List Roadmaps",
+        "description": "List all available roadmaps.",
+        "operationId": "list_roadmaps_api_roadmap_list_get",
+        "parameters": [
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoadmapListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/roadmap/create": {
       "post": {
         "tags": [
@@ -13,15 +63,33 @@
         "summary": "Create Roadmap",
         "description": "Create a new learning roadmap.\n\nArgs:\n    request: Roadmap Creation request\n    db: Database session\n\nReturns:\n    Roadmap ID and success message",
         "operationId": "create_roadmap_api_roadmap_create_post",
+        "parameters": [
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RoadmapCreateRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -64,6 +132,22 @@
               "type": "string",
               "title": "Roadmap Id"
             }
+          },
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
           }
         ],
         "responses": {
@@ -98,15 +182,33 @@
         "summary": "Chat Stream",
         "description": "Chat with the AI agent (streaming).\n\nUses the Orchestrator by default to route commands and messages.",
         "operationId": "chat_stream_api_chat_stream_post",
+        "parameters": [
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChatRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -138,15 +240,33 @@
         "summary": "Submit Review",
         "description": "Submit code for review (streaming).",
         "operationId": "submit_review_api_review_submit_post",
+        "parameters": [
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ReviewRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -178,17 +298,45 @@
         "summary": "List Agents",
         "description": "List all available agents and their metadata.",
         "operationId": "list_agents_api_agents_get",
+        "parameters": [
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/AgentConfig"
                   },
-                  "type": "array",
                   "title": "Response List Agents Api Agents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -204,16 +352,140 @@
         "summary": "Update Api Key",
         "description": "Updates the Gemini API key in .env and in-memory settings.",
         "operationId": "update_api_key_api_settings_api_key_post",
+        "parameters": [
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ApiKeyRequest"
               }
             }
-          },
-          "required": true
+          }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/reset": {
+      "delete": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Reset Application",
+        "description": "Wipes all user data (DB, vector store) and restarts with a clean slate.",
+        "operationId": "reset_application_api_settings_reset_delete",
+        "parameters": [
+          {
+            "name": "include_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Key"
+            }
+          },
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/status": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get Settings Status",
+        "description": "Checks the status of required settings.",
+        "operationId": "get_settings_status_api_settings_status_get",
+        "parameters": [
+          {
+            "name": "x-sidecar-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sidecar-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -538,6 +810,46 @@
           "goal"
         ],
         "title": "RoadmapCreateRequest"
+      },
+      "RoadmapListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at"
+        ],
+        "title": "RoadmapListItem"
+      },
+      "RoadmapListResponse": {
+        "properties": {
+          "roadmaps": {
+            "items": {
+              "$ref": "#/components/schemas/RoadmapListItem"
+            },
+            "type": "array",
+            "title": "Roadmaps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "roadmaps"
+        ],
+        "title": "RoadmapListResponse"
       },
       "RoadmapReadDetailed": {
         "properties": {

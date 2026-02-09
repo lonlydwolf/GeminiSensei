@@ -6,9 +6,9 @@ GeminiSensei is a cross-platform desktop application designed to tutor students 
 
 ## Tech Stack
 
-- **Frontend**: React 19, TypeScript, Vite, TanStack Query, Tailwind CSS.
+- **Frontend**: React 18, TypeScript, Vite, TanStack Query, Tailwind CSS.
 - **Desktop Shell**: Tauri 2.0 (Rust).
-- **Backend (Sidecar)**: FastAPI (Python 3.14), SQLAlchemy (Async), LangGraph, Gemini API.
+- **Backend (Sidecar)**: FastAPI (Python 3.12), SQLAlchemy (Async), LangGraph, Gemini API.
 - **Persistence**: SQLite (via SQLAlchemy for roadmaps, via SqliteSaver for LangGraph checkpoints).
 
 ## Data Flow
