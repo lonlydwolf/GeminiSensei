@@ -7,9 +7,13 @@ import Roadmap from './pages/Roadmap';
 import Chat from './pages/Chat';
 import Settings from './pages/Settings';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useRoadmapPersistence } from './hooks/useRoadmapPersistence';
 
 function AppContent() {
   const { currentRoute, sidecarStatus, sidecarError } = useApp();
+
+  // Restore roadmap from sidecar if active ID exists
+  useRoadmapPersistence();
 
   if (sidecarStatus === 'searching') {
     return (

@@ -90,3 +90,13 @@ export interface GeminiRoadmapResponse {
     }[];
   }[];
 }
+
+export interface RoadmapListItem {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface RoadmapListResponse {
+  roadmaps: RoadmapListItem[];
+}
