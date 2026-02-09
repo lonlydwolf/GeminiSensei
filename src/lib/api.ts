@@ -1,3 +1,17 @@
+export class ApiError extends Error {
+  code: string;
+  details?: unknown;
+  status?: number;
+
+  constructor(message: string, code: string, details?: unknown, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.details = details;
+    this.status = status;
+  }
+}
+
 class API {
   private port: string = '';
   private token: string = '';
@@ -44,14 +58,41 @@ class API {
 
   // Core request executor with retry logic
   private async executeRequest(path: string, options: RequestInit): Promise<Response> {
-    const tryFetch = async (host: string) => {
+    const tryFetch = async (host: string, attempt = 1, maxRetries = 3): Promise<Response> => {
       const url = this.getUrl(path, host);
       const response = await fetch(url, options);
+
       if (!response.ok) {
-         // Clone to read error body without consuming the main response stream (though we throw anyway)
-         const errorBody = await response.clone().json().catch(() => ({}));
-         const message = errorBody.detail || errorBody.message || response.statusText;
-         throw new Error(`API Error: ${response.status} ${message}`);
+        // Handle 429 Too Many Requests with Exponential Backoff
+        if (response.status === 429 && attempt <= maxRetries) {
+          const delay = 1000 * Math.pow(2, attempt - 1);
+          console.warn(
+            `API: 429 Too Many Requests. Retrying in ${delay}ms... (Attempt ${attempt}/${maxRetries})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return tryFetch(host, attempt + 1, maxRetries);
+        }
+
+        // Clone to read error body without consuming the main response stream (though we throw anyway)
+        const errorBody = await response.clone().json().catch(() => ({}));
+
+        if (errorBody.code) {
+          throw new ApiError(
+            errorBody.message || 'API Error',
+            errorBody.code,
+            errorBody.details,
+            response.status
+          );
+        }
+
+        // Fallback for legacy errors or generic 500s without our structure
+        const message = errorBody.detail || errorBody.message || response.statusText;
+        throw new ApiError(
+          `API Error: ${response.status} ${message}`,
+          'UNKNOWN_ERROR',
+          errorBody,
+          response.status
+        );
       }
       return response;
     };
@@ -62,8 +103,8 @@ class API {
         return await tryFetch(this.activeHost);
       } catch (error) {
         // If it's a specific API Error (like 400 Bad Request), don't retry - just throw
-        if (error instanceof Error && error.message.startsWith('API Error:')) {
-            throw error;
+        if (error instanceof ApiError) {
+          throw error;
         }
         console.warn(`API: Request to activeHost ${this.activeHost} failed. Retrying with fallback...`);
         this.activeHost = null;
@@ -77,11 +118,14 @@ class API {
       return response;
     } catch (error: unknown) {
       // If it's a specific API Error, throw
-      if (error instanceof Error && error.message.startsWith('API Error:')) {
-          throw error;
+      if (error instanceof ApiError) {
+        throw error;
       }
       // If network error (e.g. Load failed), try fallback
-      if (error instanceof TypeError && (error.message.includes('Load failed') || error.message.includes('Failed to fetch'))) {
+      if (
+        error instanceof TypeError &&
+        (error.message.includes('Load failed') || error.message.includes('Failed to fetch'))
+      ) {
         console.warn(`API: 127.0.0.1 failed, retrying with localhost...`);
         const response = await tryFetch('localhost');
         this.activeHost = 'localhost'; // Success! Cache it.
@@ -124,12 +168,25 @@ class API {
     }
   }
 
+  // DELETE request
+  async delete<T>(path: string): Promise<T> {
+    try {
+      return await this.fetchWithRetry<T>(path, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      });
+    } catch (error) {
+      console.error(`API Fetch Error DELETE ${path}:`, error);
+      throw error;
+    }
+  }
+
   // Stream response (for chat)
   async *stream(path: string, data: unknown): AsyncGenerator<string> {
     const options = {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(data),
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
     };
 
     const response = await this.executeRequest(path, options);
@@ -140,14 +197,14 @@ class API {
     const decoder = new TextDecoder();
 
     try {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            yield chunk;
-        }
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        yield chunk;
+      }
     } finally {
-        reader.releaseLock();
+      reader.releaseLock();
     }
   }
 }
