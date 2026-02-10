@@ -22,7 +22,25 @@ class GeminiService:
             model_name: Gemini model to use.
         """
         self.model_name: str = model_name
-        self.client: genai.Client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        self._client: genai.Client | None = None
+        # Don't initialize client here if API key is missing to avoid crash at import time
+        if settings.GEMINI_API_KEY:
+            try:
+                self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            except Exception as e:
+                logger.error(f"Failed to initialize Gemini client: {e}")
+
+    @property
+    def client(self) -> genai.Client:
+        """Get the Gemini client, initializing it if necessary."""
+        if self._client is None:
+            if settings.GEMINI_API_KEY:
+                self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            else:
+                raise ExternalAPIError(
+                    message="Gemini API key is not configured. Please set it in Settings."
+                )
+        return self._client
 
     def update_api_key(self, api_key: str) -> None:
         """Update the API key and re-initialize the Gemini client.
@@ -31,7 +49,11 @@ class GeminiService:
             api_key: New Gemini API key.
         """
         logger.info("Updating Gemini API key and re-initializing client")
-        self.client = genai.Client(api_key=api_key)
+        try:
+            self._client = genai.Client(api_key=api_key)
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini client with new key: {e}")
+            raise ExternalAPIError(message=f"Invalid API key: {str(e)}")
 
     async def generate_content(
         self,

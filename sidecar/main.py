@@ -52,15 +52,24 @@ def validate_config():
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Validate configuration on startup
-    _ = validate_config()
+    config_valid = validate_config()
 
-    # Initialize database on startup
+    # Initialize database on startup (always needed)
     logger.info("Initializing database...")
     await asyncio.to_thread(run_migrations)
 
-    # Initialize agents
-    logger.info("Initializing Agent Manager...")
-    await agent_manager.initialize_all()
+    # Initialize agents ONLY if API key is configured
+    if config_valid and settings.GEMINI_API_KEY:
+        logger.info("Initializing Agent Manager...")
+        try:
+            await agent_manager.initialize_all()
+            logger.info("Agents initialized successfully.")
+        except Exception as e:
+            logger.error(f"Failed to initialize agents: {e}")
+            logger.warning("Agents will remain uninitialized. Set API key to enable AI features.")
+    else:
+        logger.warning("Skipping agent initialization - API key not configured.")
+        logger.info("Please configure API key through the Welcome screen to enable AI features.")
 
     # Log initial stats
     try:
@@ -75,7 +84,7 @@ async def lifespan(_app: FastAPI):
     except Exception as e:
         logger.warning(f"Could not fetch roadmap count: {e}")
 
-    logger.info("Database and agents initialized. Sidecar is ready.")
+    logger.info("Database initialized. Sidecar is ready.")
     yield
     # Clean up on shutdown
     logger.info("Shutting down...")
