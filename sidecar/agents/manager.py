@@ -20,7 +20,10 @@ class AgentManager:
     async def initialize_all(self) -> None:
         """Initialize all registered agents"""
         if self._is_initialized:
+            logger.info("Agents already initialized. Skipping re-initialization.")
             return
+
+        logger.info("Starting agent initialization...")
 
         # Discover agents dynamically
         agent_registry.discover_agents()
@@ -29,6 +32,7 @@ class AgentManager:
         lesson_service = LessonContextService()
 
         # Initialize all discovered agents
+        initialized_count = 0
         for agent_id in agent_registry.get_all_agent_ids():
             agent_class = agent_registry.get_agent_class(agent_id)
 
@@ -45,9 +49,20 @@ class AgentManager:
             try:
                 await agent_instance.initialize()
                 logger.info(f"Agent '{agent_id}' initialized.")
+                initialized_count += 1
             except Exception as e:
                 logger.error(f"Failed to initialize agent '{agent_id}': {e}")
-        self._is_initialized = True
+                # Remove failed agent from instances
+                del self._agent_instances[agent_id]
+
+        if initialized_count > 0:
+            self._is_initialized = True
+            logger.info(
+                "Agent initialization complete. "
+                + "{initialized_count}/{len(agent_registry.get_all_agent_ids())} agents ready."
+            )
+        else:
+            logger.error("No agents were successfully initialized.")
 
     def get_agent(self, agent_id: str = "teacher") -> BaseAgent:
         """Get a specific agent instance by ID."""

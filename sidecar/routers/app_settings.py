@@ -39,6 +39,24 @@ async def update_api_key(request: ApiKeyRequest):
         # Save key
         env_path = key_manager.save_key(request.api_key)
 
+        # Initialize agents now that we have a valid API key
+        # Import here to avoid circular dependencies
+        from agents.manager import agent_manager
+
+        if not agent_manager._is_initialized:  # pyright: ignore[reportPrivateUsage]
+            print("DEBUG: Initializing agents with new API key...")
+            try:
+                await agent_manager.initialize_all()
+                print("DEBUG: Agents initialized successfully")
+                agents_initialized = True
+            except Exception as e:
+                print(f"WARNING: Failed to initialize agents: {e}")
+                # Don't fail the API key update if agent init fails
+                # Agents can be initialized later or on next restart
+                agents_initialized = False
+        else:
+            agents_initialized = True
+
         print("DEBUG: API Key update successful")
         return {
             "success": True,
@@ -47,6 +65,7 @@ async def update_api_key(request: ApiKeyRequest):
                 "env_file": str(env_path) if settings.DEBUG else env_path.name,
                 "key_length": len(request.api_key),
                 "validated": True,
+                "agents_initialized": agents_initialized,
             },
         }
     except QuotaExceededError:
