@@ -7,8 +7,12 @@ from services.gemini_service import GeminiService
 
 @pytest.mark.asyncio
 async def test_generate_content_success():
-    # Mock the google-genai Client
-    with patch("google.genai.Client") as MockClient:
+    # Mock the google-genai Client and settings
+    with (
+        patch("google.genai.Client") as MockClient,
+        patch("services.gemini_service.settings") as mock_settings,
+    ):
+        mock_settings.GEMINI_API_KEY = "test-key"
         mock_client = MockClient.return_value
         mock_client.aio.models.generate_content = AsyncMock()
 
@@ -26,7 +30,11 @@ async def test_generate_content_success():
 
 @pytest.mark.asyncio
 async def test_generate_content_stream_success():
-    with patch("google.genai.Client") as MockClient:
+    with (
+        patch("google.genai.Client") as MockClient,
+        patch("services.gemini_service.settings") as mock_settings,
+    ):
+        mock_settings.GEMINI_API_KEY = "test-key"
         mock_client = MockClient.return_value
 
         # Setup mock stream
@@ -57,7 +65,11 @@ async def test_generate_content_stream_success():
 async def test_generate_content_error():
     from core.exceptions import ExternalAPIError
 
-    with patch("google.genai.Client") as MockClient:
+    with (
+        patch("google.genai.Client") as MockClient,
+        patch("services.gemini_service.settings") as mock_settings,
+    ):
+        mock_settings.GEMINI_API_KEY = "test-key"
         mock_client = MockClient.return_value
         mock_client.aio.models.generate_content.side_effect = Exception("API Error")
 

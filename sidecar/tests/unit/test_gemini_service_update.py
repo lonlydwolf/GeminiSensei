@@ -8,7 +8,11 @@ from services.gemini_service import GeminiService
 @pytest.mark.asyncio
 async def test_update_api_key_reinitializes_client():
     """Test that update_api_key re-initializes the google-genai Client with the new key."""
-    with patch("google.genai.Client") as MockClient:
+    with (
+        patch("google.genai.Client") as MockClient,
+        patch("services.gemini_service.settings") as mock_settings,
+    ):
+        mock_settings.GEMINI_API_KEY = "initial-key"
         # Configure MockClient to return different objects on each call
         mock_client1 = MagicMock(name="client1")
         mock_client2 = MagicMock(name="client2")
