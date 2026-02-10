@@ -1,5 +1,7 @@
 import asyncio
+import tempfile
 from collections.abc import AsyncGenerator, Generator
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -28,6 +30,13 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     loop.close()
 
 
+@pytest.fixture(scope="session")
+def temp_test_dir() -> Generator[Path, None, None]:
+    """Create a temporary directory for test files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield Path(tmpdir)
+
+
 @pytest_asyncio.fixture(scope="session")
 async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
@@ -54,6 +63,7 @@ async def db_session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, N
 
 @pytest.fixture
 def mock_gemini_client() -> MagicMock:
+    """Mock Gemini API client."""
     client = MagicMock()
     client.aio = MagicMock()
     client.aio.models = MagicMock()
@@ -62,8 +72,26 @@ def mock_gemini_client() -> MagicMock:
     return client
 
 
+@pytest.fixture
+def mock_gemini_service() -> MagicMock:
+    """Mock GeminiService for testing."""
+    service = MagicMock(spec=GeminiService)
+    service.generate_content = AsyncMock()
+    service.generate_content_stream = AsyncMock()
+    service.update_api_key = AsyncMock()
+    return service
+
+
+@pytest.fixture
+def mock_api_key() -> str:
+    """Provide a fake API key for testing."""
+    return "AIzaSyDummyTestKey1234567890123456789"
+
+
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    """Test client with database override."""
+
     # Override get_db dependency
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
@@ -79,11 +107,3 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
     app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def mock_gemini_service() -> MagicMock:
-    service = MagicMock(spec=GeminiService)
-    service.generate_content = AsyncMock()
-    service.generate_content_stream = AsyncMock()
-    return service
